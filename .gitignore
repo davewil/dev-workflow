@@ -13,6 +13,3 @@
 
 # Editor backups
 *.backup
-
-# Ephemeral working notes — personal pick-up state, not part of the shareable artifact
-HANDOFF.md
