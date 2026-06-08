@@ -1,0 +1,18 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local tooling state (auto-generated session/agent state, not artifact content)
+.nwave/
+.omc/
+.remember/
+.claude/
+
+# Editor backups
+*.backup
+
+# Ephemeral working notes — personal pick-up state, not part of the shareable artifact
+HANDOFF.md
