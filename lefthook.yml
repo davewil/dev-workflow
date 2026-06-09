@@ -1,0 +1,33 @@
+# lefthook.yml — this repo's own commit gate, built the way lefthook-docker.md
+# prescribes: checks run in containers pinned by SHA256 digest, so they behave
+# identically on any machine with Docker and the lefthook binary.
+#
+# One-time setup:    lefthook install
+# CI-equivalent run: lefthook run pre-commit --all-files
+#
+# Digests resolved 2026-06-09 (shellcheck:stable, lychee:latest). Refresh via
+# `skopeo inspect docker://<image>:<tag> | jq -r '.Digest'` — see the guide §7.
+
+pre-commit:
+  parallel: true
+  commands:
+    # Lint the canonical worktree helpers. (The .ps1 port is reviewed by hand —
+    # PSScriptAnalyzer needs a PowerShell runtime, not worth the weight here.)
+    shellcheck:
+      glob: "*.sh"
+      run: |
+        docker run --rm --user $(id -u):$(id -g) \
+          -v "$PWD":/mnt -w /mnt \
+          docker.io/koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d \
+          {staged_files}
+
+    # Catch broken links between the docs. --offline checks only local/relative
+    # targets, so commits stay fast and work without network; full external link
+    # checking belongs in CI, not at the commit boundary.
+    md-links:
+      glob: "*.md"
+      run: |
+        docker run --rm --user $(id -u):$(id -g) \
+          -v "$PWD":/input -w /input \
+          docker.io/lycheeverse/lychee@sha256:eaff3e0a13603c9a701accfcc84f44158bb77bf36ecfa4622b626056c3463892 \
+          --offline --no-progress {staged_files}

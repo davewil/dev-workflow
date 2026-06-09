@@ -4,7 +4,7 @@
 > same checks produce the same outputs on Mac, Arch Linux, and CI. The container
 > is the unit of reproducibility; the host only needs Docker and Lefthook.
 >
-> Primary tool: [Lefthook](https://github.com/evilmartian/lefthook).
+> Primary tool: [Lefthook](https://github.com/evilmartians/lefthook).
 > Pre-commit covered as an alternative in section 9.
 
 Last reviewed: 2026-05-23.
@@ -67,7 +67,7 @@ sudo pacman -S lefthook                     # community repo; AUR fallback other
 npm install -g lefthook                     # installs a prebuilt native binary
 
 # Any platform with Go
-go install github.com/evilmartian/lefthook@latest
+go install github.com/evilmartians/lefthook@latest
 
 # Inside a repo, install the git hook shims
 cd /path/to/repo
@@ -89,7 +89,9 @@ Lefthook's mental model is **shell commands you orchestrate**. There's no built-
 ```yaml
 # lefthook.yml
 # All hook images pinned by SHA256 digest. Update via Renovate (see section 7).
-# Template vars: {root} = repo root, {staged_files} = files staged for this commit.
+# {staged_files} is a Lefthook template var (files staged for this commit).
+# There is NO {root} template var — commands already run from the repo root,
+# so plain "$PWD" is the host path to mount.
 
 pre-commit:
   parallel: true
@@ -100,7 +102,7 @@ pre-commit:
       glob: "*.py"
       run: |
         docker run --rm --user $(id -u):$(id -g) \
-          -v {root}:/src -w /src \
+          -v "$PWD":/src -w /src \
           ghcr.io/astral-sh/ruff@sha256:REPLACE_WITH_DIGEST \
           check --fix --exit-non-zero-on-fix {staged_files}
       stage_fixed: true
@@ -110,7 +112,7 @@ pre-commit:
       glob: "*.py"
       run: |
         docker run --rm --user $(id -u):$(id -g) \
-          -v {root}:/src -w /src \
+          -v "$PWD":/src -w /src \
           ghcr.io/astral-sh/ruff@sha256:REPLACE_WITH_DIGEST \
           format {staged_files}
       stage_fixed: true
@@ -127,7 +129,7 @@ pre-commit:
     shellcheck:
       glob: "*.{sh,bash}"
       run: |
-        docker run --rm -v {root}:/mnt -w /mnt \
+        docker run --rm -v "$PWD":/mnt -w /mnt \
           docker.io/koalaman/shellcheck@sha256:REPLACE_WITH_DIGEST \
           {staged_files}
 
@@ -135,14 +137,14 @@ pre-commit:
     yamllint:
       glob: "*.{yml,yaml}"
       run: |
-        docker run --rm -v {root}:/code -w /code \
+        docker run --rm -v "$PWD":/code -w /code \
           docker.io/cytopia/yamllint@sha256:REPLACE_WITH_DIGEST \
           {staged_files}
 
     # --- Secrets detection (scans the whole tree, not just staged) ---
     trufflehog:
       run: |
-        docker run --rm -v {root}:/scan -w /scan \
+        docker run --rm -v "$PWD":/scan -w /scan \
           ghcr.io/trufflesecurity/trufflehog@sha256:REPLACE_WITH_DIGEST \
           filesystem --no-update --fail --no-verification .
 
