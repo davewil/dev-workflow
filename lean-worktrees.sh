@@ -92,7 +92,13 @@ wtback() {
     echo "↩️ Returning to main feature workspace..."
     cd "../$target_dir" || return 1
     echo "🔥 Vaporising temporary workspace..."
-    git worktree remove "../$fix_dir"
-    wtsync
+    if ! git worktree remove "../$fix_dir"; then
+        # git refuses on uncommitted changes — that's the safety net working.
+        echo "❌ Couldn't remove ../$fix_dir — it still has uncommitted (or unpushed) work."
+        echo "   Go back and finish it (commit + wtpush), or discard it with:"
+        echo "   git worktree remove --force ../$fix_dir"
+        return 1
+    fi
+    wtsync || return 1
     echo "✨ Clean room destroyed. Workspace updated. Back to work!"
 }

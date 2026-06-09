@@ -99,6 +99,14 @@ function wtback {
     Set-Location "../$target_dir"
     Write-Host "🔥 Vaporising temporary workspace..." -ForegroundColor Yellow
     git worktree remove "../$fix_dir"
+    if ($LASTEXITCODE -ne 0) {
+        # git refuses on uncommitted changes — that's the safety net working.
+        Write-Host "❌ Couldn't remove ../$fix_dir — it still has uncommitted (or unpushed) work." -ForegroundColor Red
+        Write-Host "   Go back and finish it (commit + wtpush), or discard it with:" -ForegroundColor Red
+        Write-Host "   git worktree remove --force ../$fix_dir" -ForegroundColor Red
+        return
+    }
     wtsync
+    if ($LASTEXITCODE -ne 0) { return }
     Write-Host "✨ Clean room destroyed. Workspace updated. Back to work!" -ForegroundColor Green
 }
