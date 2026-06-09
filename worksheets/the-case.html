@@ -8,10 +8,18 @@
   :root{
     --base:#faf4ed;--surface:#fffaf3;--overlay:#f2e9e1;--muted:#9893a5;--subtle:#797593;--text:#575279;
     --love:#b4637a;--gold:#ea9d34;--rose:#d7827e;--pine:#286983;--foam:#56949f;--iris:#907aa9;
+    --backdrop:#2a2833;
     --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:"Helvetica Neue",Arial,sans-serif;
   }
+  /* the seam (ADR 0001): Rosé Pine Moon for the future on-screen edition.
+     Inert until <html data-theme="moon"> — flip the attribute to re-theme. */
+  :root[data-theme="moon"]{
+    --base:#232136;--surface:#2a273f;--overlay:#393552;--muted:#6e6a86;--subtle:#908caa;--text:#e0def4;
+    --love:#eb6f92;--gold:#f6c177;--rose:#ea9a97;--pine:#3e8fb0;--foam:#9ccfd8;--iris:#c4a7e7;
+    --backdrop:#16141f;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:#2a2833;font-family:var(--sans);color:var(--text)}
+  body{margin:0;background:var(--backdrop);font-family:var(--sans);color:var(--text)}
   .deck{display:flex;flex-direction:column;align-items:center;gap:24px;padding:28px 12px}
   .sheet{background:var(--base);width:210mm;min-height:297mm;padding:15mm 16mm;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;overflow:hidden}
   code{font-family:var(--mono)}
@@ -62,8 +70,8 @@
   .pairhead{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:14px 0 7px;font-weight:700}
   .why{display:flex;gap:12px}
   .pillar{flex:1;border-radius:6px;padding:11px 13px}
-  .p-dora{border:1.5px solid var(--pine);background:#eef4f5}
-  .p-ai{border:1.5px solid var(--iris);background:#f3eff7}
+  .p-dora{border:1.5px solid var(--pine);background:color-mix(in srgb,var(--pine) 8%,var(--surface))}
+  .p-ai{border:1.5px solid var(--iris);background:color-mix(in srgb,var(--iris) 10%,var(--surface))}
   .pillar .ph{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;margin-bottom:5px}
   .p-dora .ph{color:var(--pine)} .p-ai .ph{color:var(--iris)}
   .pillar p{margin:0 0 7px;font-size:12px;line-height:1.45}
@@ -71,7 +79,7 @@
   .key{flex:1;min-width:64px;border:1px solid var(--pine);border-radius:4px;padding:4px 5px;text-align:center;background:var(--surface)}
   .key b{display:block;font-size:9.5px;color:var(--pine);font-family:var(--mono);text-transform:uppercase}
   .key span{font-size:9px;color:var(--subtle)}
-  .p-ai .tag{font-family:var(--mono);font-size:11px;color:var(--iris);font-weight:700;border-top:1px dashed #d8cbe6;padding-top:6px;margin-top:2px}
+  .p-ai .tag{font-family:var(--mono);font-size:11px;color:var(--iris);font-weight:700;border-top:1px dashed color-mix(in srgb,var(--iris) 35%,var(--surface));padding-top:6px;margin-top:2px}
   .src{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px}
   .primer .faq{margin-top:13px}
 
@@ -83,7 +91,7 @@
   .reframe{display:flex;gap:12px;margin:14px 0}
   .rf{flex:1;border-radius:6px;padding:11px 14px}
   .rf.feel{border:1px solid var(--overlay);background:var(--surface)}
-  .rf.real{border:1.5px solid var(--pine);background:#eef4f5}
+  .rf.real{border:1.5px solid var(--pine);background:color-mix(in srgb,var(--pine) 8%,var(--surface))}
   .rf h3{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
   .rf.feel h3{color:var(--muted)} .rf.real h3{color:var(--pine)}
   .rf p{margin:0;font-size:13.5px;line-height:1.45} .rf.real p b{color:var(--pine)}

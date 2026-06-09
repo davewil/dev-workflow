@@ -113,9 +113,12 @@ phrasing) · footer · inline-SVG diagrams (Dawn line-art, never raster — ADR 
 
 ## Theming
 
-Rosé Pine **Dawn** CSS custom properties on `:root`; **Moon** as a commented
-`[data-theme="moon"]` override for the future website. `@media print` enforces breaks, drops
-screen chrome.
+Rosé Pine **Dawn** CSS custom properties on `:root`; **Moon** as a live-but-inert
+`:root[data-theme="moon"]` override — set the attribute on `<html>` to re-theme (the
+seam is proven, not just prepared). Diagram colour lives in CSS ink-token classes
+(`f-*`/`s-*`), never SVG presentation attributes; derived tints use `color-mix()` against
+palette variables so they track whichever theme is active. `@media print` enforces breaks,
+drops screen chrome.
 
 ## Verification
 
