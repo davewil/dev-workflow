@@ -36,7 +36,7 @@ The collateral must span three readers — and that spread is exactly why it spl
 | Voice | **A+C hybrid** — editorial header band over terminal/monospace interior. |
 | Palette | **Rosé Pine Dawn** via CSS custom properties. **Moon** reserved for the website edition. |
 | Branch name | **`trunk`** throughout. |
-| Build | Each artifact a **single self-contained HTML file** (CSS + inline SVG embedded). Shared CSS/components copied between the two. |
+| Build | Each artifact a **single self-contained HTML file** (CSS + inline SVG + subsetted latin woff2 fonts base64-embedded — Fraunces 900 display, IBM Plex Mono 400/700/400i interior). Shared CSS/components copied between the two. |
 | Print | `@page{size:A4}`, `break-after:page` per sheet, `break-inside:avoid` on boxes; accents are ink/borders not fills (legible with background-graphics off). A4 default (UK); Letter is a one-line change. |
 
 ---
@@ -106,10 +106,14 @@ exercise. Lean: no long prose.
 
 ## Components (shared)
 
-Header band (editorial `0N` + heavy title + "from→to" + `sheet N/total`) · ladder/rung
-(monospace; next open rung highlighted Gold+Love) · decoder (Foam box, 3–5 one-line defs;
-Kit only) · takeaway (dashed Rose) · exercise (Foam label, monospace blanks; inclusive
-phrasing) · footer · inline-SVG diagrams (Dawn line-art, never raster — ADR 0001).
+Header band (Fraunces masthead over an Oxford rule; stroke-only ghost numeral `0N`;
+"from→to" + `sheet N/total`) · ladder/rung (monospace on a visible rail; next open rung
+highlighted Gold+Love) · decoder (Foam box; dictionary entries — term + italic
+part-of-speech — on a `max-content` grid) · takeaway (dashed Rose) · exercise (Foam label,
+monospace blanks; inclusive phrasing) · footer · print-object chrome (registration
+corners, fore-edge index tabs, spine line — all ink/borders, never backgrounds) ·
+certificate pledge (double rules, roundel stamp, ×-marked signature lines) · inline-SVG
+diagrams (Dawn line-art, never raster — ADR 0001).
 
 ## Theming
 
