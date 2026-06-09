@@ -41,7 +41,8 @@ source /path/to/dev-workflow/lean-worktrees.sh
 ```
 
 Then `wtfix <name>` spawns a clean worktree off the trunk, `wtsync` rebases it onto trunk,
-`wtswitch` moves between worktrees, and `wtback` tears one down. See `lean-blueprint.md` for
+`wtpush` rebases and then pushes the worktree's HEAD straight to the trunk, `wtswitch`
+moves between worktrees, and `wtback` tears one down. See `lean-blueprint.md` for
 the model — when a worktree is the right tool versus working directly on your main branch.
 
 ## Status

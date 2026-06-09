@@ -112,9 +112,15 @@ export LEAN_WT_TRUNK=trunk      # only if your trunk isn't `main`
 wtfix bug-123                   # spawn a clean worktree off origin/<trunk>, cd in
 wtlist                          # list worktrees with branch + age
 wtsync                          # rebase the active worktree onto origin/<trunk>
+wtpush                          # rebase, then push HEAD straight to origin/<trunk>
 wtswitch <dir>                  # hop to a sibling worktree and resync it
 wtback <feature> <fix>          # return to <feature>, remove <fix>, resync
 ```
+
+Lifecycle: `wtfix → fix/commit → wtpush → wtback`. The worktree is a detached
+HEAD (no local branch to clean up), which is why `wtpush` exists — pushing from
+detached HEAD is `git push origin HEAD:<trunk>`, an incantation nobody should
+have to remember mid-hotfix.
 
 PowerShell is the same contract: dot-source [`lean-worktrees.ps1`](./lean-worktrees.ps1)
 from your `$PROFILE` and set `$env:LEAN_WT_TRUNK` if needed.
@@ -174,6 +180,7 @@ stacked-PR generation.
 
 ## Terminal Command Aliases
 - `wtfix <name>`  — spawn a fresh environment.
+- `wtpush` — rebase upstream, then push the worktree's HEAD straight to `master`.
 - `wtback <target> <fix>` — clean up.
 - `wtsync` — rebase upstream.
 ```
@@ -192,7 +199,8 @@ They are an *optimisation* of the existing trunk-based flow — isolation + para
 a replacement for it. The rest stays exactly as-is: **no PRs** (worktrees push straight to
 master), dark-ship behind FunWithFlags, tag-to-deploy, PO acceptance in prod. A worktree is
 an isolation boundary, **not** an integration boundary: push to master continuously from
-inside it, keep it rebased on trunk (`wtsync`), and delete it when its expand phase ships.
+inside it (`wtpush` — rebase, then push `HEAD` to the trunk, in one step), keep it rebased
+on trunk (`wtsync`), and delete it when its expand phase ships.
 Dark-ship gating is what makes pushing incomplete work from a worktree safe.
 
 #### Tooling — native vs hand-rolled

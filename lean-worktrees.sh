@@ -9,7 +9,16 @@
 #   wtfix <name>                 spawn a clean worktree off your main branch and cd in
 #   wtlist                       list worktrees with branch + age
 #   wtsync                       rebase the active worktree onto your main branch
+#   wtpush                       rebase, then push the worktree's HEAD straight to trunk
 #   wtback <feature> <fix>       cd back to <feature>, remove <fix> worktree, resync
+#
+# Lifecycle: wtfix → fix/commit → wtpush → wtback. No branch, no PR.
+#
+# wtfix checks out origin/<trunk> directly, so the worktree is on a detached
+# HEAD — deliberate: there's no local branch to clean up afterwards. The catch
+# is that pushing from detached HEAD needs `git push origin HEAD:<trunk>`,
+# which is what wtpush wraps (after a rebase — sync is manual, at the push
+# boundary, never in a hook).
 #
 # The integration branch (the one that hits prod) defaults to `main`. Set LEAN_WT_TRUNK
 # to whatever yours is — main / master / trunk; the name doesn't matter.
@@ -48,6 +57,15 @@ wtsync() {
     echo "🔄 Syncing active workspace with the main trunk..."
     git fetch origin "$LEAN_WT_TRUNK" --quiet && git rebase "origin/${LEAN_WT_TRUNK}" \
         && echo "✅ Workspace aligned with origin/${LEAN_WT_TRUNK}."
+}
+
+wtpush() {
+    # Rebase onto the trunk first (the manual sync at the push boundary), then
+    # push the worktree's detached HEAD straight to the trunk — no branch, no PR.
+    wtsync || return 1
+    echo "⬆️  Pushing HEAD to origin/${LEAN_WT_TRUNK}..."
+    git push origin "HEAD:${LEAN_WT_TRUNK}" \
+        && echo "✅ Landed on origin/${LEAN_WT_TRUNK}."
 }
 
 wtswitch() {
