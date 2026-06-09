@@ -95,9 +95,9 @@ exercise. Lean: no long prose.
   skip (the PO flip, the consolidate) are the visual centre. Exercise: count your live flags /
   how many are past consolidation.
 - **④ The worktree clean-room** — create a worktree → hotfix off `trunk` without touching WIP
-  (`wtfix`) → rebased, push, delete (`wtsync`/`wtback`) → agents in their own trees
-  (`claude --worktree`). Diagram: `wtfix → fix → push → wtback`. Footnote: set
-  `export LEAN_WT_TRUNK=trunk` so printed commands match the branch.
+  (`wtfix`) → rebased + pushed straight to trunk (`wtpush`), delete (`wtback`) → agents in
+  their own trees (`claude --worktree`). Diagram: `wtfix → fix → wtpush → wtback`. Footnote:
+  set `export LEAN_WT_TRUNK=trunk` so printed commands match the branch.
 - **⑤ Ship / Show / Ask** — Ship direct / Show the commit link / Ask (pair-mob) for pivots →
   PRs retired as default; quality from visibility + CI. Diagram: three lanes → one trunk.
 

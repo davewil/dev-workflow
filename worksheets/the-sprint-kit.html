@@ -262,7 +262,7 @@
     <div class="ladder">
       <div class="rung"><span class="tb"></span><span><span class="rn">R1</span>You can create a git worktree.</span></div>
       <div class="rung"><span class="tb"></span><span><span class="rn">R2</span>A hotfix spawns a clean tree off <code>trunk</code> without touching your WIP (<code>wtfix</code>).</span></div>
-      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span>Keep it rebased, push to <code>trunk</code>, delete when done (<code>wtsync</code>/<code>wtback</code>).</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span>Keep it rebased and push straight to <code>trunk</code> (<code>wtpush</code>); delete when done (<code>wtback</code>).</span></div>
       <div class="rung"><span class="tb"></span><span><span class="rn">R4</span>Agents / parallel work run in their own trees (<code>claude --worktree</code>).</span></div>
     </div>
     <div class="nextrung"><b>▶ our next rung this sprint:</b> R<span class="fill"></span> &nbsp; owner <span class="fill" style="min-width:7em"></span></div>
@@ -271,6 +271,7 @@
       <dt>WIP</dt><dd>work in progress — the unfinished change you had open.</dd>
       <dt>rebase</dt><dd>replay your commits on top of the latest <code>trunk</code>.</dd>
       <dt>wtfix / wtback</dt><dd>shell helpers: spawn a clean tree / clean it up after.</dd>
+      <dt>wtpush</dt><dd>rebase onto <code>trunk</code>, then push the fix straight to it.</dd>
     </dl>
     <div class="figure"><div class="figcap">Fig.4 — spawn a clean room, fix, push, vaporise it</div>
       <svg viewBox="0 0 600 110" width="100%" height="110" font-family="ui-monospace,Menlo,monospace" font-size="10.5">
@@ -282,11 +283,12 @@
         <rect class="f-wash s-gold" x="210" y="70" width="200" height="28" rx="5"/>
         <text class="f-love" x="310" y="88" text-anchor="middle" font-weight="700">../hotfix · clean room</text>
         <text class="f-foam" x="150" y="74">wtfix →</text>
-        <text class="f-iris" x="430" y="74">→ push + wtback</text>
+        <text class="f-iris" x="430" y="74">→ wtpush + wtback</text>
         <text class="f-gold" x="470" y="22" text-anchor="middle" font-weight="700">fix lands</text>
       </svg>
     </div>
     <div class="exercise"><b>&gt; exercise</b> &nbsp;Facilitator runs <code>wtfix demo</code> live. Write the lifecycle from memory: <span class="blank" style="min-width:4em"></span> → fix → <span class="blank" style="min-width:4em"></span> → <span class="blank" style="min-width:4em"></span></div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px">// the helpers read <code>LEAN_WT_TRUNK</code> (default <code>main</code>) — <code>export LEAN_WT_TRUNK=trunk</code> makes them match this sheet.</div>
     <div class="notes"><div class="nh">// notes — where we actually are</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>④ THE WORKTREE CLEAN-ROOM</span><span>tick what you do · climb one rung</span><span>sheet 4 / 5</span></div>
   </section>
