@@ -6,12 +6,32 @@ ship in small batches safely — kept separate from any one project or personal 
 
 ## Contents
 
+### Methodology
+
 | File | What it is |
 |---|---|
 | [`lean-blueprint.md`](./lean-blueprint.md) | The methodology write-up: trunk-based flow, when to use a worktree vs work on your main branch, build-cache warming, branch-by-abstraction + dark shipping, and an illustrative CI pipeline. |
 | [`lean-worktrees.sh`](./lean-worktrees.sh) | Worktree shell helpers for Bash/Zsh — `wtfix` / `wtsync` / `wtswitch` / `wtback`. The canonical copy. |
 | [`lean-worktrees.ps1`](./lean-worktrees.ps1) | PowerShell port of the same helpers. |
 | [`lefthook-docker.md`](./lefthook-docker.md) | Containerised git-hooks reference (Lefthook + Docker, images pinned by digest; cross-platform macOS + Linux). |
+
+### Worksheets — print-first session collateral
+
+| File | What it is |
+|---|---|
+| [`worksheets/the-case.html`](./worksheets/the-case.html) | **The Case** — the *why*. A three-sheet persuasion piece: cover hook, trunk-based primer (DORA + AI-foundation pillars), and "the cost of the queue" for whoever owns the process. Read once; leave behind. |
+| [`worksheets/the-sprint-kit.html`](./worksheets/the-sprint-kit.html) | **The Sprint Kit** — the *how*. Self-check, five practice ladders (single-piece flow, deploy≠release, life of a flag, worktree clean-room, ship/show/ask), and a one-sprint pledge. Worked with a pen, every sprint. |
+
+Both are single self-contained HTML files designed to print to A4 (open in a browser →
+print). Screen view is a live preview of the printed sheets.
+
+### Decisions & design
+
+| File | What it is |
+|---|---|
+| [`docs/decisions/0001-worksheet-medium.md`](./docs/decisions/0001-worksheet-medium.md) | ADR: print-first worksheets now, interactive on-screen edition deferred — and the constraints that keep the deferred option cheap. |
+| [`docs/decisions/0002-split-the-case-from-the-kit.md`](./docs/decisions/0002-split-the-case-from-the-kit.md) | ADR: split the persuasion piece (The Case) from the working kit (The Sprint Kit) — one document doing both jobs did neither well. |
+| [`docs/superpowers/specs/2026-06-09-lean-flow-worksheets-design.md`](./docs/superpowers/specs/2026-06-09-lean-flow-worksheets-design.md) | The worksheets' design spec: audiences, sheet-by-sheet content, shared components, theming, and verification checklist. |
 
 ## Using the worktree helpers
 
