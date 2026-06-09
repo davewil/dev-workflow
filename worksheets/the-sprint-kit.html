@@ -13,7 +13,7 @@
   *{box-sizing:border-box}
   body{margin:0;background:#2a2833;font-family:var(--sans);color:var(--text)}
   .deck{display:flex;flex-direction:column;align-items:center;gap:24px;padding:28px 12px}
-  .sheet{background:var(--base);width:210mm;min-height:297mm;padding:15mm 16mm;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  .sheet{background:var(--base);width:210mm;min-height:297mm;padding:15mm 16mm;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;display:flex;flex-direction:column;overflow:hidden}
   code{font-family:var(--mono);background:var(--overlay);padding:.5px 4px;border-radius:3px;color:var(--pine)}
 
   .band{display:flex;align-items:flex-start;gap:16px;border-bottom:2.5px solid var(--text);padding-bottom:10px}
@@ -27,8 +27,8 @@
 
   /* ladders */
   .climb{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:8px 0 2px}
-  .ladder{font-family:var(--mono);font-size:13.5px;line-height:1.45}
-  .rung{display:flex;gap:11px;align-items:flex-start;padding:7px 6px;border-bottom:1px dashed var(--overlay)}
+  .ladder{font-family:var(--mono);font-size:14.5px;line-height:1.5}
+  .rung{display:flex;gap:11px;align-items:flex-start;padding:9px 6px;border-bottom:1px dashed var(--overlay)}
   .tb{flex:none;width:14px;height:14px;border:1.6px solid var(--subtle);border-radius:3px;margin-top:1px}
   .rung .rn{color:var(--love);font-weight:700;margin-right:4px}
   .rung b{color:var(--pine)}
@@ -46,6 +46,9 @@
   .exercise{font-family:var(--mono);font-size:12.5px;color:var(--subtle);margin-top:10px}
   .exercise b{color:var(--foam)}
   .blank{display:inline-block;min-width:2.2em;border-bottom:1.5px solid var(--muted);margin:0 3px}
+  .notes{flex:1 1 auto;display:flex;flex-direction:column;margin:13px 0 0;border:1px solid var(--overlay);border-radius:6px;background:var(--surface);padding:9px 13px 7px;min-height:96px}
+  .notes .nh{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+  .notes .lines{flex:1;background-image:repeating-linear-gradient(transparent 0 27px,#e7dccb 27px 28px)}
 
   /* self-check */
   .ck{font-family:var(--mono);font-size:12.5px}
@@ -110,6 +113,7 @@
     </div>
 
     <div class="nudge"><b>// where to start:</b> the cluster with most "no"s points to your ladder — ① flow · ② deploy≠release · ③ life of a flag · ④ worktree clean-room · ⑤ ship/show/ask. Pick one or two for the sprint; that's the pledge at the end.</div>
+    <div class="notes"><div class="nh">// notes — anything to flag?</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>SPRINT KIT · SELF-CHECK</span><span>tick what you do · climb one rung</span><span>sheet 0</span></div>
   </section>
 
@@ -151,6 +155,7 @@
       </svg>
     </div>
     <div class="exercise"><b>&gt; exercise</b> &nbsp;Any 3 recent changes (yours <em>or the team's</em>) — days from first commit to landing on <code>trunk</code>? <span class="blank"></span><span class="blank"></span><span class="blank"></span></div>
+    <div class="notes"><div class="nh">// notes — where we actually are</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>① SINGLE-PIECE FLOW</span><span>tick what you do · climb one rung</span><span>sheet 1 / 5</span></div>
   </section>
 
@@ -192,6 +197,7 @@
       </svg>
     </div>
     <div class="exercise"><b>&gt; exercise</b> &nbsp;Name one feature you could have shipped <b style="color:var(--pine)">dark</b> last sprint: <span class="blank" style="min-width:14em"></span></div>
+    <div class="notes"><div class="nh">// notes — where we actually are</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>② DEPLOYMENT ≠ RELEASE</span><span>tick what you do · climb one rung</span><span>sheet 2 / 5</span></div>
   </section>
 
@@ -226,6 +232,7 @@
       </svg>
     </div>
     <div class="exercise"><b>&gt; exercise</b> &nbsp;Live feature flags in your codebase now: <span class="blank"></span> &nbsp; how many past consolidation? <span class="blank"></span></div>
+    <div class="notes"><div class="nh">// notes — where we actually are</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>③ DELIVERED ≠ DONE</span><span>tick what you do · climb one rung</span><span>sheet 3 / 5</span></div>
   </section>
 
@@ -262,6 +269,7 @@
       </svg>
     </div>
     <div class="exercise"><b>&gt; exercise</b> &nbsp;Facilitator runs <code>wtfix demo</code> live. Write the lifecycle from memory: <span class="blank" style="min-width:4em"></span> → fix → <span class="blank" style="min-width:4em"></span> → <span class="blank" style="min-width:4em"></span></div>
+    <div class="notes"><div class="nh">// notes — where we actually are</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>④ THE WORKTREE CLEAN-ROOM</span><span>tick what you do · climb one rung</span><span>sheet 4 / 5</span></div>
   </section>
 
@@ -295,6 +303,7 @@
       </svg>
     </div>
     <div class="exercise"><b>&gt; exercise</b> &nbsp;Sort into Ship / Show / Ask: (a) a typo fix <span class="blank"></span> &nbsp;(b) a new dark endpoint <span class="blank"></span> &nbsp;(c) an auth rewrite <span class="blank"></span></div>
+    <div class="notes"><div class="nh">// notes — where we actually are</div><div class="lines"></div></div>
     <div class="sheetfoot"><span>⑤ SHIP / SHOW / ASK</span><span>tick what you do · climb one rung</span><span>sheet 5 / 5</span></div>
   </section>
 
@@ -316,6 +325,7 @@
       <div class="pline"><span class="lab">owner</span><span class="ln"></span><span class="lab">done looks like</span><span class="ln"></span></div>
     </div>
 
+    <div class="notes" style="margin-bottom:14px"><div class="nh">// notes — blockers · dependencies · how we'll check</div><div class="lines"></div></div>
     <div class="sign">
       <div><div class="ln"></div>team / date</div>
       <div><div class="ln"></div>revisit on (end of sprint)</div>
