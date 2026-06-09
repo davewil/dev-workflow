@@ -4,15 +4,16 @@
 # Trunk-based, single-piece-flow worktree helpers. Dot-source from your
 # $PROFILE, or drop into your dotfiles repo and import it.
 #
-#   wtfix <name>                 spawn a clean worktree off origin/master and cd in
+#   wtfix <name>                 spawn a clean worktree off your main branch and cd in
 #   wtlist                       list worktrees with branch + age
-#   wtsync                       rebase the active worktree onto origin/master
+#   wtsync                       rebase the active worktree onto your main branch
 #   wtback <feature> <fix>       cd back to <feature>, remove <fix> worktree, resync
 #
-# Assumes the trunk branch is `master`. Set $env:LEAN_WT_TRUNK to override.
+# The integration branch (the one that hits prod) defaults to `main`. Set
+# $env:LEAN_WT_TRUNK to whatever yours is — the name doesn't matter.
 # ==============================================================================
 
-if (-not $env:LEAN_WT_TRUNK) { $env:LEAN_WT_TRUNK = "master" }
+if (-not $env:LEAN_WT_TRUNK) { $env:LEAN_WT_TRUNK = "main" }
 
 function wtfix {
     param([string]$name)

@@ -1,7 +1,7 @@
 # Lefthook with Docker-based hooks — setup guide
 
 > Goal: git hooks that run **inside containers**, pinned by **digest**, so the
-> same checks produce the same outputs on Mac, Omarchy, and CI. The container
+> same checks produce the same outputs on Mac, Arch Linux, and CI. The container
 > is the unit of reproducibility; the host only needs Docker and Lefthook.
 >
 > Primary tool: [Lefthook](https://github.com/evilmartian/lefthook).
@@ -16,7 +16,7 @@ Last reviewed: 2026-05-23.
 Every machine that touches the repo runs the same checks the same way:
 
 - **Mac** — OrbStack provides the Docker socket. No Docker Desktop.
-- **Omarchy** — native Linux Docker. lazydocker for ad-hoc inspection.
+- **Arch Linux** — native Linux Docker. lazydocker for ad-hoc inspection.
 - **CI** — GitHub Actions runner with native Docker, Lefthook installed per job.
 - **Hook images** — pinned by SHA256 digest, not by tag. Updates managed by Renovate.
 
@@ -60,7 +60,7 @@ docker run --rm hello-world                 # smoke test
 # Mac
 brew install lefthook
 
-# Omarchy / Arch
+# Arch Linux / Arch
 sudo pacman -S lefthook                     # community repo; AUR fallback otherwise
 
 # Any platform with Node already installed
@@ -160,7 +160,7 @@ commit-msg:
 - `parallel: true` runs commands in parallel — the main reason Lefthook is fast.
 - `stage_fixed: true` auto-`git add`s files that a formatter modified, so the commit picks them up without a second pass.
 - `glob` filters which files trigger which commands.
-- `--user $(id -u):$(id -g)` keeps file ownership correct on native Linux (Omarchy). On Mac with OrbStack it's a no-op but harmless.
+- `--user $(id -u):$(id -g)` keeps file ownership correct on native Linux (Arch Linux). On Mac with OrbStack it's a no-op but harmless.
 - For commands that scan a single file via stdin (like hadolint), a small for-loop iterates `{staged_files}`.
 
 ### Finding the digest for an image
@@ -176,7 +176,7 @@ Or without pulling (uses `skopeo`):
 
 ```bash
 brew install skopeo                          # Mac
-sudo pacman -S skopeo                        # Omarchy
+sudo pacman -S skopeo                        # Arch Linux
 
 skopeo inspect docker://ghcr.io/astral-sh/ruff:latest | jq -r '.Digest'
 # sha256:1a2b3c…
@@ -238,7 +238,7 @@ The runner already has Docker; Lefthook pulls the same digests; output matches l
 
 **On caching:** GitHub-hosted runners are ephemeral, so Docker images pull fresh per job. For test-side service images (Postgres, Redis) that's normally fast enough against the CDN. If it becomes painful, options are:
 - `docker/build-push-action` with `cache-from: type=gha` for built images.
-- Self-hosted runners (e.g. on the homelab) which keep the local Docker layer cache between jobs natively. Cleanest setup if commit volume justifies it.
+- Self-hosted runners (e.g. a persistent build host) which keep the local Docker layer cache between jobs natively. Cleanest setup if commit volume justifies it.
 
 ---
 
@@ -248,9 +248,9 @@ The runner already has Docker; Lefthook pulls the same digests; output matches l
 
 - UID/GID mapping handled by OrbStack — hooks that write files leave them owned by you, not root.
 - `~/` paths mount automatically into hook containers.
-- `--user $(id -u):$(id -g)` in the `docker run` is harmless but unnecessary; keep it for parity with Omarchy.
+- `--user $(id -u):$(id -g)` in the `docker run` is harmless but unnecessary; keep it for parity with Arch Linux.
 
-### Omarchy (native Linux Docker)
+### Arch Linux (native Linux Docker)
 
 - Add yourself to the `docker` group once so you don't need sudo:
   ```bash
@@ -260,10 +260,12 @@ The runner already has Docker; Lefthook pulls the same digests; output matches l
 - `--user $(id -u):$(id -g)` is essential — without it, formatters that write files leave them owned by root.
 - lazydocker is purely a viewer — it doesn't change the runtime. Keep using it for ad-hoc inspection.
 
-### Homelab Docker host (192.168.1.102)
+### Remote / self-hosted Docker host
 
-- Not used for hooks (latency + offline-commit concerns). Reserve it for app workloads.
-- Candidate for self-hosted GitHub Actions runner if CI cache reuse becomes valuable.
+- Don't run hooks against a remote Docker host (latency + offline-commit concerns). Reserve
+  remote hosts for app workloads.
+- A persistent remote host is a candidate for a self-hosted GitHub Actions runner if CI
+  cache reuse becomes valuable.
 
 ### CI
 
@@ -408,7 +410,7 @@ Install + run:
 
 ```bash
 brew install pre-commit                      # Mac
-sudo pacman -S pre-commit                    # Omarchy
+sudo pacman -S pre-commit                    # Arch Linux
 pre-commit install
 pre-commit run --all-files
 ```

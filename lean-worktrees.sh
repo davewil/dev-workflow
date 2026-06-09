@@ -6,15 +6,16 @@
 # ~/.bashrc, or drop into your dotfiles repo (e.g. dotfiles/shell/worktrees.sh)
 # and `source` it.
 #
-#   wtfix <name>                 spawn a clean worktree off origin/master and cd in
+#   wtfix <name>                 spawn a clean worktree off your main branch and cd in
 #   wtlist                       list worktrees with branch + age
-#   wtsync                       rebase the active worktree onto origin/master
+#   wtsync                       rebase the active worktree onto your main branch
 #   wtback <feature> <fix>       cd back to <feature>, remove <fix> worktree, resync
 #
-# Assumes the trunk branch is `master`. Change MASTER below if yours differs.
+# The integration branch (the one that hits prod) defaults to `main`. Set LEAN_WT_TRUNK
+# to whatever yours is — main / master / trunk; the name doesn't matter.
 # ==============================================================================
 
-: "${LEAN_WT_TRUNK:=master}"
+: "${LEAN_WT_TRUNK:=main}"
 
 wtfix() {
     local name=$1

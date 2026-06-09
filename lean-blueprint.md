@@ -9,6 +9,10 @@ code-inventory waste (stacked PRs) and scale parallel developer execution using
 > wins — the authoritative pipeline is your repository's CI workflow (e.g.
 > `.github/workflows/ci-deploy.yml`), and the delivery philosophy this manual
 > instantiates lives in your team's delivery-principles doc.
+>
+> **Branch name:** examples below show `master`, but the name is immaterial — it's
+> whichever single branch reaches production (`main` / `master` / `trunk`). The worktree
+> helpers read `$LEAN_WT_TRUNK` (default `main`); set it to whatever yours is.
 
 ---
 
@@ -569,7 +573,7 @@ jobs:
         suite: [unit_integration, contract, e2e]
     env:
       MIX_ENV: test
-      DATABASE_URL: ecto://postgres:postgres@localhost:5433/slackex_test
+      DATABASE_URL: ecto://postgres:postgres@localhost:5433/<app>_test
       REDIS_URL: redis://localhost:6379
     services:
       postgres:
@@ -577,7 +581,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: slackex_test
+          POSTGRES_DB: <app>_test
         ports:
           - 5433:5432
         options: >-
@@ -679,8 +683,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/d-j-will/slackex:latest
-            ghcr.io/d-j-will/slackex:${{ steps.meta.outputs.version }}
+            ghcr.io/<org>/<app>:latest
+            ghcr.io/<org>/<app>:${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -705,15 +709,15 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-          scp docker-compose.prod.yml root@${{ secrets.DEPLOY_HOST }}:/root/slackex/docker-compose.prod.yml
+          scp docker-compose.prod.yml root@${{ secrets.DEPLOY_HOST }}:/root/<app>/docker-compose.prod.yml
           # ... (infra/ + caddy/ asset copy and .env reconciliation omitted for brevity —
           #      see the authoritative ci-deploy.yml) ...
 
           ssh root@${{ secrets.DEPLOY_HOST }} "
-            cd /root/slackex
+            cd /root/<app>
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml run --rm --no-TTY app1 \
-              bin/slackex eval 'Slackex.Release.migrate()' < /dev/null
+              bin/<app> eval '<App>.Release.migrate()' < /dev/null
             docker compose -f docker-compose.prod.yml up -d
           "
 ```
