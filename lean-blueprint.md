@@ -97,123 +97,27 @@ These functions make local context switching effortless during an emergency swit
 (e.g. a production bug). They spawn a clean room for the hotfix and destroy it when
 finished, keeping local development frictionless.
 
-> Extracted, ready-to-source copies of these live alongside this doc:
+> **The canonical implementations live alongside this doc:**
 > [`lean-worktrees.sh`](./lean-worktrees.sh) (Bash/Zsh) and
 > [`lean-worktrees.ps1`](./lean-worktrees.ps1) (PowerShell).
-
-#### Bash / Zsh — add to `~/.zshrc` or `~/.bashrc`
+> This manual deliberately does **not** duplicate their code — an earlier revision
+> embedded full copies here and they drifted stale (hardcoded `master`, missing
+> `wtswitch`). One source of truth; the manual carries only the usage contract.
 
 ```bash
-# ==============================================================================
-# LEAN WORKTREE FUNCTIONS FOR BASH / ZSH (WITH WTSYNC & AGE)
-# ==============================================================================
+# ~/.zshrc / ~/.bashrc
+source /path/to/dev-workflow/lean-worktrees.sh
+export LEAN_WT_TRUNK=trunk      # only if your trunk isn't `main`
 
-wtfix() {
-    local name=$1
-    if [ -z "$name" ]; then
-        echo "❌ Error: Please provide a hotfix name (e.g., wtfix bug-123)"
-        return 1
-    fi
-    echo "🔄 Fetching latest master..."
-    git fetch origin master --quiet
-    echo "📁 Spawning clean workspace in ../$name..."
-    git worktree add "../$name" origin/master
-    echo "🚀 Swapping to new workspace..."
-    cd "../$name"
-}
-
-wtlist() {
-    printf "%-25s %-15s %s\n" "BRANCH" "AGE" "PATH"
-    printf "%-25s %-15s %s\n" "------" "---" "----"
-    git worktree list | while read -r line; do
-        local wt_path
-        wt_path=$(echo "$line" | awk '{print $1}')
-        local branch
-        branch=$(git -C "$wt_path" rev-parse --abbrev-ref HEAD 2>/dev/null)
-        local age
-        age=$(git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
-        if [ -z "$age" ]; then age="N/A"; fi
-        printf "\033[32m%-25s\033[0m \033[36m%-15s\033[0m %s\n" "${branch:0:24}" "${age:0:14}" "$wt_path"
-    done
-}
-
-wtsync() {
-    echo "🔄 Syncing active workspace with the main trunk..."
-    git fetch origin master --quiet && git rebase origin/master
-    echo "✅ Workspace aligned with origin/master."
-}
-
-wtback() {
-    local target_dir=$1
-    local fix_dir=$2
-    if [ -z "$target_dir" ] || [ -z "$fix_dir" ]; then
-        echo "❌ Error: Usage: wtback <feature-dir-name> <hotfix-dir-name>"
-        return 1
-    fi
-    echo "↩️ Returning to main feature workspace..."
-    cd "../$target_dir"
-    echo "🔥 Vaporising temporary workspace..."
-    git worktree remove "../$fix_dir"
-    wtsync
-    echo "✨ Clean room destroyed. Workspace updated. Back to work!"
-}
+wtfix bug-123                   # spawn a clean worktree off origin/<trunk>, cd in
+wtlist                          # list worktrees with branch + age
+wtsync                          # rebase the active worktree onto origin/<trunk>
+wtswitch <dir>                  # hop to a sibling worktree and resync it
+wtback <feature> <fix>          # return to <feature>, remove <fix>, resync
 ```
 
-#### PowerShell — add to your `$PROFILE`
-
-```powershell
-# ==============================================================================
-# LEAN WORKTREE FUNCTIONS FOR POWERSHELL (WITH WTSYNC)
-# ==============================================================================
-
-function wtfix {
-    param([string]$name)
-    if ([string]::IsNullOrEmpty($name)) {
-        Write-Host "❌ Error: Please provide a hotfix name (e.g., wtfix bug-123)" -ForegroundColor Red
-        return
-    }
-    Write-Host "🔄 Fetching latest master..." -ForegroundColor Cyan
-    git fetch origin master --quiet
-    Write-Host "📁 Spawning clean workspace in ../$name..." -ForegroundColor Cyan
-    git worktree add "../$name" origin/master
-    Write-Host "🚀 Swapping to new workspace..." -ForegroundColor Green
-    Set-Location "../$name"
-}
-
-function wtlist {
-    git worktree list | ForEach-Object {
-        $parts = $_ -split "\s+"
-        $path = $parts[0]
-        $branch = git -C $path rev-parse --abbrev-ref HEAD
-        $age = git -C $path log -1 --format="%cr"
-        [PSCustomObject]@{
-            Branch = $branch
-            Age    = $age
-            Path   = $path
-        }
-    } | Format-Table -AutoSize
-}
-
-function wtsync {
-    Write-Host "🔄 Syncing active workspace with the main trunk..." -ForegroundColor Cyan
-    git fetch origin master --quiet; git rebase origin/master
-    Write-Host "✅ Workspace aligned with origin/master." -ForegroundColor Green
-}
-
-function wtback {
-    param([string]$target_dir, [string]$fix_dir)
-    if ([string]::IsNullOrEmpty($target_dir) -or [string]::IsNullOrEmpty($fix_dir)) {
-        Write-Host "❌ Error: Usage: wtback <feature-dir-name> <hotfix-dir-name>" -ForegroundColor Red
-        return
-    }
-    Write-Host "↩️ Returning to main feature workspace..." -ForegroundColor Cyan
-    Set-Location "../$target_dir"
-    Write-Host "🔥 Vaporising temporary workspace..." -ForegroundColor Yellow
-    git worktree remove "../$fix_dir"
-    wtsync
-    Write-Host "✨ Clean room destroyed. Workspace updated. Back to work!" -ForegroundColor Green
-}
-```
+PowerShell is the same contract: dot-source [`lean-worktrees.ps1`](./lean-worktrees.ps1)
+from your `$PROFILE` and set `$env:LEAN_WT_TRUNK` if needed.
 
 ### 2. Local Git Pre-Commit Hook (Automated Sync) — ⚠️ NOT ADOPTED HERE
 
@@ -638,20 +542,6 @@ jobs:
         if: matrix.suite == 'e2e'
         run: mix test --only e2e
 
-  mermaid-render:
-    name: Mermaid render check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Install mermaid-cli (skip chromium download, use runner Chrome)
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: "true"
-        run: npm install -g @mermaid-js/mermaid-cli@11.15.0
-
-      - name: Render every docs mermaid block
-        run: sh scripts/mermaid/render-check.sh docs
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -688,36 +578,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Install Tailscale
-        uses: tailscale/github-action@v4
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TAILSCALE_AUTHKEY }}
-          tags: tag:ci
-
-      - name: Deploy to Docker host
-        env:
-          FLAGS_ADMIN_USER: ${{ secrets.FLAGS_ADMIN_USER }}
-          FLAGS_ADMIN_PASSWORD: ${{ secrets.FLAGS_ADMIN_PASSWORD }}
-          EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
-          CADDY_CF_TOKEN: ${{ secrets.CADDY_CF_TOKEN }}
-          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
-          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      # From here the mechanics are environment-specific — reach wherever prod runs
+      # (SSH, cloud CLI, PaaS hook) and swap the image. Two invariants are worth
+      # keeping whatever the target: run migrations as an explicit step *before*
+      # the new containers come up, and deploy the exact image you just pushed.
+      - name: Deploy
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-          scp docker-compose.prod.yml root@${{ secrets.DEPLOY_HOST }}:/root/<app>/docker-compose.prod.yml
-          # ... (infra/ + caddy/ asset copy and .env reconciliation omitted for brevity —
-          #      see the authoritative ci-deploy.yml) ...
-
-          ssh root@${{ secrets.DEPLOY_HOST }} "
-            cd /root/<app>
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml run --rm --no-TTY app1 \
-              bin/<app> eval '<App>.Release.migrate()' < /dev/null
-            docker compose -f docker-compose.prod.yml up -d
+          ssh deploy@your-prod-host "
+            cd /srv/<app>
+            docker compose pull
+            docker compose run --rm app bin/<app> eval '<App>.Release.migrate()'
+            docker compose up -d
           "
 ```
