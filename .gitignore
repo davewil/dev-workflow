@@ -13,3 +13,6 @@
 
 # Editor backups
 *.backup
+
+# Brainstorming visual-companion scratch (local only)
+.superpowers/

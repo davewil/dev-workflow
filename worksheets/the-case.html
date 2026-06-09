@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Case — Lean Trunk-Based Delivery</title>
+<style>
+  :root{
+    --base:#faf4ed;--surface:#fffaf3;--overlay:#f2e9e1;--muted:#9893a5;--subtle:#797593;--text:#575279;
+    --love:#b4637a;--gold:#ea9d34;--rose:#d7827e;--pine:#286983;--foam:#56949f;--iris:#907aa9;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#2a2833;font-family:var(--sans);color:var(--text)}
+  .deck{display:flex;flex-direction:column;align-items:center;gap:24px;padding:28px 12px}
+  .sheet{background:var(--base);width:210mm;min-height:297mm;padding:15mm 16mm;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  code{font-family:var(--mono)}
+
+  /* header band */
+  .band{display:flex;align-items:flex-start;gap:16px;border-bottom:2.5px solid var(--text);padding-bottom:10px}
+  .band .kick{font-family:var(--mono);font-size:12px;letter-spacing:.15em;text-transform:uppercase}
+  .band h2{margin:2px 0 0;font-size:30px;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;line-height:1}
+  .band .from{margin-top:4px;font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--iris);text-transform:uppercase}
+  .band .meta{margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+  .sheetfoot{position:absolute;left:16mm;right:16mm;bottom:8mm;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);border-top:1px solid var(--overlay);padding-top:6px}
+
+  /* shared FAQ + decoder */
+  .faq .fh{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--iris);margin-bottom:6px}
+  .qa{padding:6px 0;border-bottom:1px dashed var(--overlay);font-size:12.5px;line-height:1.45}
+  .qa .q{font-weight:700;color:var(--text)} .qa .q::before{content:"“";color:var(--love)} .qa .q::after{content:"”";color:var(--love)}
+  .qa .a{color:var(--subtle)} .qa .a b{color:var(--pine)}
+  .decoder{border:1px solid var(--overlay);border-left:3px solid var(--foam);border-radius:6px;background:var(--surface);padding:9px 13px;font-family:var(--mono);font-size:11px;line-height:1.4}
+  .decoder .dh{color:var(--foam);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:9.5px;margin-bottom:4px}
+  .decoder dt{color:var(--pine);font-weight:700;float:left;clear:left;min-width:10.5em}
+  .decoder dd{margin:0 0 2px 10.5em;color:var(--subtle)}
+
+  /* COVER */
+  .cover .band{border:none;padding:0}
+  .cover .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--pine);text-transform:uppercase}
+  .cover h1{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:.98;margin:10px 0 0}
+  .cover h1 em{font-style:normal;color:var(--love)}
+  .cover .lede{font-size:16px;max-width:46ch;margin-top:16px;line-height:1.5;color:var(--subtle)}
+  .coverflow{display:flex;flex-direction:column;min-height:100%}
+  .inside{margin-top:26px}
+  .inside .ih{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--iris);margin-bottom:8px}
+  .inside ul{list-style:none;margin:0;padding:0}
+  .inside li{padding:6px 0;border-bottom:1px dashed var(--overlay);font-size:14.5px}
+  .inside li b{color:var(--love);font-weight:800;font-family:var(--mono);margin-right:8px}
+  .inside li span{color:var(--muted);font-family:var(--mono);font-size:12px}
+  .cover .how{font-family:var(--mono);font-size:12.5px;color:var(--text);margin-top:auto;border-top:2px solid var(--text);padding-top:12px}
+  .cover .how b{color:var(--pine)}
+
+  /* PRIMER */
+  .define{margin:12px 0;border-left:4px solid var(--love);background:var(--surface);padding:11px 15px;font-size:16px;line-height:1.4}
+  .define b{color:var(--love)} .define code{background:var(--overlay);padding:1px 5px;border-radius:3px;color:var(--pine);font-size:.85em}
+  .two{display:flex;gap:12px;margin:12px 0}
+  .col{flex:1;border:1px solid var(--overlay);border-radius:6px;padding:10px 13px;background:var(--surface)}
+  .col h3{margin:0 0 6px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+  .col.old h3{color:var(--love)} .col.new h3{color:var(--pine)}
+  .col ul{margin:0;padding-left:17px;font-size:12.5px;line-height:1.5;color:var(--subtle)}
+  .col.new ul{color:var(--text)}
+  .pairhead{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:14px 0 7px;font-weight:700}
+  .why{display:flex;gap:12px}
+  .pillar{flex:1;border-radius:6px;padding:11px 13px}
+  .p-dora{border:1.5px solid var(--pine);background:#eef4f5}
+  .p-ai{border:1.5px solid var(--iris);background:#f3eff7}
+  .pillar .ph{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+  .p-dora .ph{color:var(--pine)} .p-ai .ph{color:var(--iris)}
+  .pillar p{margin:0 0 7px;font-size:12px;line-height:1.45}
+  .keys{display:flex;gap:5px;flex-wrap:wrap}
+  .key{flex:1;min-width:64px;border:1px solid var(--pine);border-radius:4px;padding:4px 5px;text-align:center;background:var(--surface)}
+  .key b{display:block;font-size:9.5px;color:var(--pine);font-family:var(--mono);text-transform:uppercase}
+  .key span{font-size:9px;color:var(--subtle)}
+  .p-ai .tag{font-family:var(--mono);font-size:11px;color:var(--iris);font-weight:700;border-top:1px dashed #d8cbe6;padding-top:6px;margin-top:2px}
+  .src{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px}
+  .primer .faq{margin-top:13px}
+
+  /* LEADERS */
+  .anchor{margin:14px 0;background:var(--surface);border:1.5px solid var(--love);border-radius:8px;padding:14px 18px;display:flex;gap:16px;align-items:center}
+  .anchor .big{font-size:46px;font-weight:800;color:var(--love);line-height:.9;white-space:nowrap}
+  .anchor .q{font-size:15px;line-height:1.4} .anchor .q b{color:var(--love)}
+  .anchor .q .said{font-family:var(--mono);font-size:11px;color:var(--muted);display:block;margin-top:4px}
+  .reframe{display:flex;gap:12px;margin:14px 0}
+  .rf{flex:1;border-radius:6px;padding:11px 14px}
+  .rf.feel{border:1px solid var(--overlay);background:var(--surface)}
+  .rf.real{border:1.5px solid var(--pine);background:#eef4f5}
+  .rf h3{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+  .rf.feel h3{color:var(--muted)} .rf.real h3{color:var(--pine)}
+  .rf p{margin:0;font-size:13.5px;line-height:1.45} .rf.real p b{color:var(--pine)}
+  .taxes{margin:14px 0}
+  .taxes .th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:7px}
+  .tax{display:flex;gap:10px;padding:6px 0;border-bottom:1px dashed var(--overlay);font-size:13px;line-height:1.4}
+  .tax b{color:var(--text);min-width:8.5em;flex:none} .tax span{color:var(--subtle)}
+  .leaders .faq .fh{color:var(--gold)}
+  .leaders .qa .q::before,.leaders .qa .q::after{color:var(--gold)}
+  .bottom{margin:14px 0 0;border-left:4px solid var(--gold);background:var(--surface);padding:12px 15px;font-size:14px;line-height:1.45}
+  .bottom b{color:var(--gold)}
+
+  @media print{
+    @page{size:A4;margin:0}
+    body{background:#fff}
+    .deck{gap:0;padding:0}
+    .sheet{box-shadow:none;width:auto;min-height:auto;height:297mm;page-break-after:always;break-after:page}
+    .sheet:last-child{page-break-after:auto}
+    .two,.why,.pillar,.qa,.decoder,.anchor,.reframe,.tax,.bottom{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ===== COVER ===== -->
+  <section class="sheet cover">
+    <div class="coverflow">
+      <div>
+        <div class="kicker">The Case · trunk-based delivery</div>
+        <h1>You already do<br>more of this<br>than you <em>think.</em></h1>
+        <p class="lede">A handful of habits that let a team ship small changes safely, many times a day — without big release days or waiting on pull-request reviews. This is the case for why it's worth a sprint of your team's attention.</p>
+        <div class="inside">
+          <div class="ih">What's inside — in plain words</div>
+          <ul>
+            <li><b>01</b> Ship in a straight line, not a tower of waiting reviews. <span>· single-piece flow</span></li>
+            <li><b>02</b> Put code live without switching it on for users yet. <span>· deploy ≠ release</span></li>
+            <li><b>03</b> Handle an urgent fix without losing your place. <span>· the worktree clean-room</span></li>
+            <li><b>04</b> Keep quality high without review queues. <span>· ship / show / ask</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="how">
+        <b>How to use this.</b><br>
+        Read the primer, then the cost-of-the-queue page if you own the process. The <em>doing</em> lives in the companion <b>Sprint Kit</b> — self-check, ladders, and a one-sprint pledge.
+      </div>
+    </div>
+    <div class="sheetfoot"><span>THE CASE · LEAN FLOW</span><span>good principles · with &amp; without AI</span><span>cover</span></div>
+  </section>
+
+  <!-- ===== PRIMER ===== -->
+  <section class="sheet primer">
+    <div class="band">
+      <div><div class="kick" style="color:var(--pine)">Primer · read this first</div><h2>Why trunk-based?</h2><div class="from">the case, before the ladders</div></div>
+      <div class="meta">1 of 2 · the why</div>
+    </div>
+
+    <div class="define"><b>The whole idea:</b> everyone merges <b>small</b> changes into one shared branch — <code>trunk</code> — at least <b>once a day</b>. Not long-lived side branches merged weeks later. That's it.</div>
+
+    <div class="two">
+      <div class="col old"><h3>✗ the old way hurts</h3><ul>
+        <li>Long-lived branches drift → painful, scary merges.</li>
+        <li>Big releases bundle changes → when it breaks, <em>which</em> one?</li>
+        <li>Finished work waits in a review queue → done, not delivered.</li>
+        <li>Feedback arrives next sprint, when it's expensive to fix.</li>
+      </ul></div>
+      <div class="col new"><h3>✓ the payoff</h3><ul>
+        <li>Small batches → easy to review, safe to ship, quick to fix.</li>
+        <li>Real continuous integration → conflicts caught in <b style="color:var(--pine)">minutes</b>, not weeks.</li>
+        <li>Deploy decoupled from release → ship now, switch on when ready.</li>
+        <li>Feedback today → learn while it's cheap to change.</li>
+      </ul></div>
+    </div>
+
+    <div class="pairhead">// two reasons to do this now</div>
+    <div class="why">
+      <div class="pillar p-dora">
+        <div class="ph">1 · it's measured, not taste</div>
+        <p>The <b>DORA research</b> finds trunk-based development predicts <b>elite delivery</b> — the four outcomes every org wants:</p>
+        <div class="keys">
+          <div class="key"><b>Deploy freq</b><span>ship more</span></div>
+          <div class="key"><b>Lead time</b><span>idea→prod</span></div>
+          <div class="key"><b>Change-fail</b><span>fewer bad</span></div>
+          <div class="key"><b>Recovery</b><span>fix fast</span></div>
+        </div>
+        <div class="src">Accelerate / DORA (Forsgren, Humble, Kim) — the delivery-performance research, not the EU regulation.</div>
+      </div>
+      <div class="pillar p-ai">
+        <div class="ph">2 · it's the foundation for AI</div>
+        <p><b>Applied AI amplifies whatever workflow you already have.</b> An agent makes a tower of changes faster than anyone can review — so AI pays off only on a workflow that already absorbs volume safely:</p>
+        <p style="font-size:11.5px;color:var(--subtle);margin:0 0 7px">parallel agents in their own <b style="color:var(--iris)">worktrees</b> · AI features shipped <b style="color:var(--iris)">dark</b> behind a flag · a fast <b style="color:var(--iris)">CI gate</b> as the check, not per-keystroke review.</p>
+        <div class="tag">good principles first — worth it without AI, and what makes AI pay off.</div>
+      </div>
+    </div>
+
+    <div class="faq">
+      <div class="fh">// the worries you're already thinking</div>
+      <div class="qa"><span class="q">Commit straight to trunk? Reckless?</span> <span class="a">— No. Changes are <b>small</b>, hidden behind a <b>flag</b> till ready, and a fast CI gate (&lt;10 min) catches breakage early.</span></div>
+      <div class="qa"><span class="q">No PR review — how keep quality?</span> <span class="a">— Review moves from a <em>queue</em> to <b>real time</b>: pair/mob on hard things, post commits, lean on CI. <em>(Kit · ⑤)</em></span></div>
+      <div class="qa"><span class="q">What about half-finished work?</span> <span class="a">— It ships <b>dark</b> behind a flag: live in prod, invisible to users. <em>(Kit · ②)</em></span></div>
+    </div>
+
+    <dl class="decoder" style="margin-top:12px">
+      <div class="dh">// decoder — new here? the words on this sheet</div>
+      <dt>trunk</dt><dd>the one shared main branch everyone merges into.</dd>
+      <dt>continuous integration</dt><dd>merging everyone's work constantly so problems show up early.</dd>
+      <dt>CI gate</dt><dd>automated build + tests that must pass before code is accepted.</dd>
+      <dt>worktree</dt><dd>a second working copy of the repo — lets agents (or you) work in parallel.</dd>
+      <dt>dark</dt><dd>deployed to production but hidden behind a flag.</dd>
+    </dl>
+
+    <div class="sheetfoot"><span>PRIMER · WHY TRUNK-BASED</span><span>good principles · with &amp; without AI</span><span>the why · 1/2</span></div>
+  </section>
+
+  <!-- ===== LEADERS ===== -->
+  <section class="sheet leaders">
+    <div class="band">
+      <div><div class="kick" style="color:var(--gold)">For the person who owns the process</div><h2>The cost of the queue</h2><div class="from">what a PR-heavy flow really buys — and bills</div></div>
+      <div class="meta">2 of 2 · the why</div>
+    </div>
+
+    <div class="anchor">
+      <div class="big">6&nbsp;hrs</div>
+      <div class="q">One engineer. One day. <b>Six hours in pull requests.</b> A traditional read calls that diligence. In flow terms it's a bill — and the team pays it every single day.
+        <span class="said">// overheard on a real team, this week</span></div>
+    </div>
+
+    <div class="reframe">
+      <div class="rf feel"><h3>feels like</h3><p>Control. Quality. Oversight. A gate every change must earn its way through.</p></div>
+      <div class="rf real"><h3>actually is</h3><p><b>Inventory + latency.</b> Finished work that can't be used yet, waiting on a human queue — while the meter runs on engineer time.</p></div>
+    </div>
+
+    <div class="taxes">
+      <div class="th">// the hidden taxes on the queue</div>
+      <div class="tax"><b>Engineer hours</b><span>time in the queue — authoring, waiting, re-reviewing — × the team × every day.</span></div>
+      <div class="tax"><b>Lead time</b><span>code done Monday, merged Thursday = three days of value sitting idle.</span></div>
+      <div class="tax"><b>Context-switching</b><span>finish → wait → return to cold review comments. Focus fragments.</span></div>
+      <div class="tax"><b>Rubber-stamping</b><span>big PRs tire reviewers, so they wave them through. The queue bills for quality it doesn't deliver.</span></div>
+      <div class="tax"><b>Throughput ceiling</b><span>delivery rate is capped by review latency, not coding speed.</span></div>
+    </div>
+
+    <div class="faq">
+      <div class="fh">// what a Head of Engineering will ask</div>
+      <div class="qa"><span class="q">PRs are our quality gate.</span> <span class="a">— The <b>CI gate</b> is — automated, on every change. Real-time review (pair/mob) covers the hard parts. The async queue adds latency, not assurance.</span></div>
+      <div class="qa"><span class="q">How do I keep oversight?</span> <span class="a">— Every commit on <code>trunk</code> is tested, deployable, and <b>posted for visibility</b>. More signal, sooner — not less.</span></div>
+      <div class="qa"><span class="q">Isn't committing to trunk riskier?</span> <span class="a">— Smaller changes + flags + fast recovery → <b>lower</b> change-fail rate. In DORA, speed and stability rise <em>together</em>.</span></div>
+      <div class="qa"><span class="q">My seniors review to mentor juniors.</span> <span class="a">— Pairing and mobbing mentor <b>better and faster</b> than cold async comments.</span></div>
+    </div>
+
+    <div class="bottom"><b>The bottom line.</b> A traditional lead optimises the <em>review</em>. Trunk-based optimises the <em>flow</em>: make changes small enough that review is synchronous or seconds, gate with CI, ship dark. Same quality, a fraction of the cost — and the data says teams that drop the queue ship more often <em>and</em> fail less.</div>
+
+    <div class="sheetfoot"><span>THE COST OF THE QUEUE · FOR LEADERS</span><span>cost · throughput · risk · flow</span><span>the why · 2/2</span></div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Sprint Kit — Lean Trunk-Based Delivery</title>
+<style>
+  :root{
+    --base:#faf4ed;--surface:#fffaf3;--overlay:#f2e9e1;--muted:#9893a5;--subtle:#797593;--text:#575279;
+    --love:#b4637a;--gold:#ea9d34;--rose:#d7827e;--pine:#286983;--foam:#56949f;--iris:#907aa9;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;--sans:"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#2a2833;font-family:var(--sans);color:var(--text)}
+  .deck{display:flex;flex-direction:column;align-items:center;gap:24px;padding:28px 12px}
+  .sheet{background:var(--base);width:210mm;min-height:297mm;padding:15mm 16mm;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  code{font-family:var(--mono);background:var(--overlay);padding:.5px 4px;border-radius:3px;color:var(--pine)}
+
+  .band{display:flex;align-items:flex-start;gap:16px;border-bottom:2.5px solid var(--text);padding-bottom:10px}
+  .band .num{font-size:58px;font-weight:800;color:var(--love);line-height:.8;letter-spacing:-.03em}
+  .band .kick{font-family:var(--mono);font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--pine)}
+  .band h2{margin:1px 0 0;font-size:29px;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;line-height:1}
+  .band .from{margin-top:4px;font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--iris);text-transform:uppercase}
+  .band .meta{margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+  .lead{font-size:13.5px;color:var(--subtle);margin:11px 0 4px;line-height:1.4}
+  .sheetfoot{position:absolute;left:16mm;right:16mm;bottom:8mm;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);border-top:1px solid var(--overlay);padding-top:6px}
+
+  /* ladders */
+  .climb{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:8px 0 2px}
+  .ladder{font-family:var(--mono);font-size:13.5px;line-height:1.45}
+  .rung{display:flex;gap:11px;align-items:flex-start;padding:7px 6px;border-bottom:1px dashed var(--overlay)}
+  .tb{flex:none;width:14px;height:14px;border:1.6px solid var(--subtle);border-radius:3px;margin-top:1px}
+  .rung .rn{color:var(--love);font-weight:700;margin-right:4px}
+  .rung b{color:var(--pine)}
+  .nextrung{margin-top:9px;border:1.5px solid var(--gold);background:#fdf3e2;border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:12.5px;color:var(--text)}
+  .nextrung b{color:var(--gold)}
+  .fill{display:inline-block;min-width:3em;border-bottom:1.5px solid var(--muted);margin:0 4px}
+
+  .decoder{margin:12px 0;border:1px solid var(--overlay);border-left:3px solid var(--foam);border-radius:6px;background:var(--surface);padding:9px 13px;font-family:var(--mono);font-size:11px;line-height:1.4}
+  .decoder .dh{color:var(--foam);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:9.5px;margin-bottom:4px}
+  .decoder dt{color:var(--pine);font-weight:700;float:left;clear:left;min-width:9.5em}
+  .decoder dd{margin:0 0 2px 9.5em;color:var(--subtle)}
+
+  .figure{border:1px solid var(--overlay);border-radius:6px;padding:10px 12px;margin:11px 0;background:var(--surface)}
+  .figcap{font-family:var(--mono);font-size:10px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+  .exercise{font-family:var(--mono);font-size:12.5px;color:var(--subtle);margin-top:10px}
+  .exercise b{color:var(--foam)}
+  .blank{display:inline-block;min-width:2.2em;border-bottom:1.5px solid var(--muted);margin:0 3px}
+
+  /* self-check */
+  .ck{font-family:var(--mono);font-size:12.5px}
+  .ck .hdr{display:flex;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;padding:0 6px 4px;border-bottom:1.5px solid var(--text)}
+  .ck .hdr .boxes{margin-left:auto;display:flex;gap:6px}
+  .ck .hdr .boxes span{width:34px;text-align:center}
+  .ckrow{display:flex;align-items:center;padding:6.5px 6px;border-bottom:1px dashed var(--overlay);line-height:1.3}
+  .ckrow .t{flex:1;padding-right:10px}
+  .ckrow .anti{color:var(--love)}
+  .ckrow .boxes{display:flex;gap:6px;flex:none}
+  .ckrow .boxes .b3{width:34px;display:flex;justify-content:center}
+  .s3{width:14px;height:14px;border:1.5px solid var(--subtle);border-radius:3px}
+  .nudge{margin-top:12px;border-left:4px solid var(--gold);background:var(--surface);padding:10px 14px;font-size:12.5px;line-height:1.45;font-family:var(--mono)}
+  .nudge b{color:var(--gold)}
+
+  /* pledge */
+  .pledge-intro{font-size:15px;line-height:1.45;margin:14px 0 6px}
+  .pledge-intro b{color:var(--love)}
+  .pblock{border:1.5px solid var(--pine);border-radius:8px;padding:13px 15px;margin:11px 0;background:var(--surface)}
+  .pblock .pl{font-family:var(--mono);font-size:11px;color:var(--pine);text-transform:uppercase;letter-spacing:.05em}
+  .pline{display:flex;align-items:flex-end;gap:8px;margin-top:9px;font-family:var(--mono);font-size:13px}
+  .pline .lab{color:var(--subtle);white-space:nowrap}
+  .pline .ln{flex:1;border-bottom:1.5px solid var(--muted);height:1.5em}
+  .sign{display:flex;gap:20px;margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--subtle)}
+  .sign .ln{flex:1;border-bottom:1.5px solid var(--muted);height:2.4em}
+
+  @media print{
+    @page{size:A4;margin:0}
+    body{background:#fff}
+    .deck{gap:0;padding:0}
+    .sheet{box-shadow:none;width:auto;min-height:auto;height:297mm;page-break-after:always;break-after:page}
+    .sheet:last-child{page-break-after:auto}
+    .figure,.decoder,.rung,.ckrow,.pblock,.nextrung,.nudge{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ===== SELF-CHECK ===== -->
+  <section class="sheet">
+    <div class="band">
+      <div><div class="kick">Sprint Kit · start here</div><h2>Where are we now?</h2><div class="from">an honest self-check · no score</div></div>
+      <div class="meta">sheet 0</div>
+    </div>
+    <p class="lead">Tick honestly — there's no grade. It just shows which ladder to start on. <span style="color:var(--love)">Rose rows are habits worth dropping</span> — a "yes" there is a flag, not a win.</p>
+
+    <div class="ck">
+      <div class="hdr"><span>statement</span><span class="boxes"><span>no</span><span>sort</span><span>yes</span></span></div>
+      <div class="ckrow"><span class="t">We merge to <code>trunk</code> at least once a day.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t anti">We start new branches on top of other <em>unmerged</em> branches.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">We can deploy to production without releasing to users.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">New work goes out behind a feature flag, off by default.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">A product owner accepts features in prod before users see them.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">We remove the flag + old path once a feature is accepted.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t anti">An urgent hotfix makes us stash or shelve our current work.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">We spin up a separate workspace for a hotfix and bin it after.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t anti">We wait on an async PR review before code reaches <code>trunk</code>.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">Low-risk changes go straight to <code>trunk</code>; complex ones we pair/mob.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">We post commit links for visibility instead of gating with PRs.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+      <div class="ckrow"><span class="t">We can run parallel work (or an AI agent) without disturbing the main line.</span><span class="boxes"><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span><span class="b3"><span class="s3"></span></span></span></div>
+    </div>
+
+    <div class="nudge"><b>// where to start:</b> the cluster with most "no"s points to your ladder — ① flow · ② deploy≠release · ③ life of a flag · ④ worktree clean-room · ⑤ ship/show/ask. Pick one or two for the sprint; that's the pledge at the end.</div>
+    <div class="sheetfoot"><span>SPRINT KIT · SELF-CHECK</span><span>tick what you do · climb one rung</span><span>sheet 0</span></div>
+  </section>
+
+  <!-- ===== ① SINGLE-PIECE FLOW ===== -->
+  <section class="sheet">
+    <div class="band"><span class="num">01</span><div><h2>Single-piece&nbsp;flow</h2><div class="from">from branch-stacks → trunk</div></div><div class="meta">sheet 1 / 5</div></div>
+    <p class="lead">Code flows in one straight line into <code>trunk</code> — not a tower of branches waiting on review.</p>
+    <div class="climb">tick the rungs you already stand on · climb upward</div>
+    <div class="ladder">
+      <div class="rung"><span class="tb"></span><span><span class="rn">R1</span>Short-lived branches, merged within a day.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R2</span>You don't start a new branch on one that isn't merged yet.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span>Commit straight to <code>trunk</code>, <b>dark</b> (hidden behind a flag).</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R4</span>Merge to <code>trunk</code> many times a day; worktrees for parallel work.</span></div>
+    </div>
+    <div class="nextrung"><b>▶ our next rung this sprint:</b> R<span class="fill"></span> &nbsp; owner <span class="fill" style="min-width:7em"></span></div>
+    <dl class="decoder"><div class="dh">// decoder</div>
+      <dt>trunk</dt><dd>the one shared main branch everyone merges into.</dd>
+      <dt>merge</dt><dd>fold your change into <code>trunk</code> so it's part of the shared code.</dd>
+      <dt>dark</dt><dd>deployed to prod but hidden behind a flag — users can't see it yet.</dd>
+      <dt>worktree</dt><dd>a second working copy of the repo, for working on two things at once.</dd>
+    </dl>
+    <div class="figure"><div class="figcap">Fig.1 — a tower of waiting work vs. one straight line</div>
+      <svg viewBox="0 0 600 118" width="100%" height="118" font-family="ui-monospace,Menlo,monospace" font-size="11">
+        <rect x="20" y="12" width="150" height="18" rx="3" fill="none" stroke="#9893a5"/>
+        <rect x="20" y="34" width="150" height="18" rx="3" fill="none" stroke="#9893a5"/>
+        <rect x="20" y="56" width="150" height="18" rx="3" fill="none" stroke="#9893a5"/>
+        <text x="95" y="24" fill="#9893a5" text-anchor="middle">change 3 · waits</text>
+        <text x="95" y="46" fill="#9893a5" text-anchor="middle">change 2 · waits</text>
+        <text x="95" y="68" fill="#9893a5" text-anchor="middle">change 1 · waits</text>
+        <line x1="14" y1="80" x2="176" y2="6" stroke="#b4637a" stroke-width="2.5"/>
+        <text x="95" y="98" fill="#b4637a" text-anchor="middle" font-weight="700">stacked = waiting work piles up</text>
+        <line x1="210" y1="48" x2="560" y2="48" stroke="#286983" stroke-width="2.5"/>
+        <polygon points="560,48 550,43 550,53" fill="#286983"/>
+        <circle cx="250" cy="48" r="5" fill="#286983"/><circle cx="320" cy="48" r="5" fill="#286983"/>
+        <circle cx="390" cy="48" r="5" fill="#ea9d34"/><circle cx="460" cy="48" r="5" fill="#286983"/>
+        <text x="385" y="30" fill="#575279" text-anchor="middle">trunk</text>
+        <text x="555" y="68" fill="#286983" text-anchor="end">→ production</text>
+        <text x="390" y="80" fill="#ea9d34" text-anchor="middle" font-weight="700">live, but dark</text>
+      </svg>
+    </div>
+    <div class="exercise"><b>&gt; exercise</b> &nbsp;Any 3 recent changes (yours <em>or the team's</em>) — days from first commit to landing on <code>trunk</code>? <span class="blank"></span><span class="blank"></span><span class="blank"></span></div>
+    <div class="sheetfoot"><span>① SINGLE-PIECE FLOW</span><span>tick what you do · climb one rung</span><span>sheet 1 / 5</span></div>
+  </section>
+
+  <!-- ===== ② DEPLOYMENT ≠ RELEASE ===== -->
+  <section class="sheet">
+    <div class="band"><span class="num">02</span><div><h2>Deployment&nbsp;≠&nbsp;Release</h2><div class="from">ship dark · release is a business event</div></div><div class="meta">sheet 2 / 5</div></div>
+    <p class="lead">Deploying code and releasing it to users are two separate events. A feature flag is the seam between them.</p>
+    <div class="climb">tick the rungs you already stand on · climb upward</div>
+    <div class="ladder">
+      <div class="rung"><span class="tb"></span><span><span class="rn">R1</span>We <em>can</em> deploy without releasing — the seam exists.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R2</span>New work ships behind a flag, <b>off by default</b>.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span>A PO flips the flag in prod (staff-only first) to try it.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R4</span>Release is a business call, decoupled from deploy cadence.</span></div>
+    </div>
+    <div class="nextrung"><b>▶ our next rung this sprint:</b> R<span class="fill"></span> &nbsp; owner <span class="fill" style="min-width:7em"></span></div>
+    <dl class="decoder"><div class="dh">// decoder</div>
+      <dt>deploy</dt><dd>put code into the production environment (it may still be off).</dd>
+      <dt>release</dt><dd>turn a feature on for users — a separate, deliberate decision.</dd>
+      <dt>feature flag</dt><dd>a runtime on/off switch wrapping a piece of code.</dd>
+      <dt>staff flag</dt><dd>a flag on only for staff, so they can try it in prod first.</dd>
+    </dl>
+    <div class="figure"><div class="figcap">Fig.2 — one commit ships; a separate switch releases</div>
+      <svg viewBox="0 0 600 120" width="100%" height="120" font-family="ui-monospace,Menlo,monospace" font-size="11">
+        <line x1="20" y1="40" x2="300" y2="40" stroke="#286983" stroke-width="2.5"/>
+        <polygon points="300,40 290,35 290,45" fill="#286983"/>
+        <circle cx="60" cy="40" r="5" fill="#286983"/>
+        <text x="60" y="26" fill="#575279" text-anchor="middle">commit</text>
+        <rect x="232" y="26" width="70" height="28" rx="4" fill="#f2e9e1" stroke="#9893a5"/>
+        <text x="267" y="44" fill="#9893a5" text-anchor="middle">prod · off</text>
+        <text x="160" y="62" fill="#286983" text-anchor="middle">deploy = technical</text>
+        <!-- switch -->
+        <rect x="360" y="22" width="52" height="34" rx="17" fill="#fdeee4" stroke="#ea9d34" stroke-width="2"/>
+        <circle cx="398" cy="39" r="11" fill="#ea9d34"/>
+        <text x="386" y="76" fill="#ea9d34" text-anchor="middle" font-weight="700">PO flips it</text>
+        <line x1="412" y1="39" x2="540" y2="39" stroke="#b4637a" stroke-width="2.5"/>
+        <polygon points="540,39 530,34 530,44" fill="#b4637a"/>
+        <text x="500" y="26" fill="#b4637a" text-anchor="middle" font-weight="700">users 🎉</text>
+        <text x="476" y="62" fill="#b4637a" text-anchor="middle">release = business</text>
+      </svg>
+    </div>
+    <div class="exercise"><b>&gt; exercise</b> &nbsp;Name one feature you could have shipped <b style="color:var(--pine)">dark</b> last sprint: <span class="blank" style="min-width:14em"></span></div>
+    <div class="sheetfoot"><span>② DEPLOYMENT ≠ RELEASE</span><span>tick what you do · climb one rung</span><span>sheet 2 / 5</span></div>
+  </section>
+
+  <!-- ===== ③ DELIVERED ≠ DONE ===== -->
+  <section class="sheet">
+    <div class="band"><span class="num">03</span><div><h2>Delivered&nbsp;≠&nbsp;Done</h2><div class="from">engineering delivers · the business accepts</div></div><div class="meta">sheet 3 / 5</div></div>
+    <p class="lead">"Delivered" = code live in prod (dark). "Done" = the PO accepted it there. Mind the handoff — and kill the flag after.</p>
+    <div class="climb">tick the rungs you already stand on · climb upward</div>
+    <div class="ladder">
+      <div class="rung"><span class="tb"></span><span><span class="rn">R1</span>“Deployed” and “accepted” are different words on our board.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R2</span>We gather feedback while a feature is still dark (staff flag, PO in prod).</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span>The PO accepts the live feature, and <b>that</b> flips the flag on.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R4</span>After release we <b>consolidate</b>: remove the flag, delete the old path.</span></div>
+    </div>
+    <div class="nextrung"><b>▶ our next rung this sprint:</b> R<span class="fill"></span> &nbsp; owner <span class="fill" style="min-width:7em"></span></div>
+    <dl class="decoder"><div class="dh">// decoder</div>
+      <dt>product owner (PO)</dt><dd>the person who decides a feature is good to release.</dd>
+      <dt>consolidate</dt><dd>remove the flag + delete the replaced old path — one clean path.</dd>
+      <dt>flag debt</dt><dd>flags left in the code long after they should've been removed.</dd>
+    </dl>
+    <div class="figure"><div class="figcap">Fig.3 — the life of a flag (born off · lives dark · flipped by the PO · then dies)</div>
+      <svg viewBox="0 0 600 120" width="100%" height="120" font-family="ui-monospace,Menlo,monospace">
+        <line x1="34" y1="40" x2="566" y2="40" stroke="#cbb8c9" stroke-width="2"/>
+        <g font-size="9" text-anchor="middle">
+          <circle cx="50" cy="40" r="6" fill="#9893a5"/><text x="50" y="62" fill="#575279" font-weight="700">commit→trunk</text><text x="50" y="74" fill="#9893a5">flag OFF</text>
+          <circle cx="185" cy="40" r="6" fill="#56949f"/><text x="185" y="62" fill="#575279" font-weight="700">feedback</text><text x="185" y="74" fill="#56949f">staff + PO in prod</text>
+          <circle cx="320" cy="40" r="9" fill="#ea9d34" stroke="#b4637a" stroke-width="2"/><text x="320" y="64" fill="#b4637a" font-weight="700">PO: “good”</text><text x="320" y="76" fill="#ea9d34" font-weight="700">flips switch</text>
+          <circle cx="448" cy="40" r="6" fill="#286983"/><text x="448" y="62" fill="#575279" font-weight="700">flag ON</text><text x="448" y="74" fill="#286983">= release</text>
+          <circle cx="560" cy="40" r="9" fill="#907aa9"/><text x="552" y="62" fill="#907aa9" font-weight="700" text-anchor="end">consolidate ✓</text><text x="556" y="74" fill="#797593" text-anchor="end">flag dies</text>
+        </g>
+        <text x="300" y="104" text-anchor="middle" font-size="10" fill="#b4637a" font-weight="700">the two steps teams skip → flags pile up as debt</text>
+      </svg>
+    </div>
+    <div class="exercise"><b>&gt; exercise</b> &nbsp;Live feature flags in your codebase now: <span class="blank"></span> &nbsp; how many past consolidation? <span class="blank"></span></div>
+    <div class="sheetfoot"><span>③ DELIVERED ≠ DONE</span><span>tick what you do · climb one rung</span><span>sheet 3 / 5</span></div>
+  </section>
+
+  <!-- ===== ④ THE WORKTREE CLEAN-ROOM ===== -->
+  <section class="sheet">
+    <div class="band"><span class="num">04</span><div><h2>The worktree clean-room</h2><div class="from">interrupt without disturbing your work</div></div><div class="meta">sheet 4 / 5</div></div>
+    <p class="lead">Handle an interruption in a throwaway workspace, without stashing or disturbing the work you were already doing.</p>
+    <div class="climb">tick the rungs you already stand on · climb upward</div>
+    <div class="ladder">
+      <div class="rung"><span class="tb"></span><span><span class="rn">R1</span>You can create a git worktree.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R2</span>A hotfix spawns a clean tree off <code>trunk</code> without touching your WIP (<code>wtfix</code>).</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span>Keep it rebased, push to <code>trunk</code>, delete when done (<code>wtsync</code>/<code>wtback</code>).</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R4</span>Agents / parallel work run in their own trees (<code>claude --worktree</code>).</span></div>
+    </div>
+    <div class="nextrung"><b>▶ our next rung this sprint:</b> R<span class="fill"></span> &nbsp; owner <span class="fill" style="min-width:7em"></span></div>
+    <dl class="decoder"><div class="dh">// decoder</div>
+      <dt>worktree</dt><dd>a second checkout of the same repo in its own folder.</dd>
+      <dt>WIP</dt><dd>work in progress — the unfinished change you had open.</dd>
+      <dt>rebase</dt><dd>replay your commits on top of the latest <code>trunk</code>.</dd>
+      <dt>wtfix / wtback</dt><dd>shell helpers: spawn a clean tree / clean it up after.</dd>
+    </dl>
+    <div class="figure"><div class="figcap">Fig.4 — spawn a clean room, fix, push, vaporise it</div>
+      <svg viewBox="0 0 600 110" width="100%" height="110" font-family="ui-monospace,Menlo,monospace" font-size="10.5">
+        <line x1="20" y1="34" x2="580" y2="34" stroke="#286983" stroke-width="2.5"/>
+        <text x="20" y="22" fill="#575279">trunk</text>
+        <circle cx="120" cy="34" r="5" fill="#286983"/><circle cx="470" cy="34" r="5" fill="#ea9d34"/>
+        <path d="M120 34 q40 50 90 50" fill="none" stroke="#9893a5" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <path d="M470 84 q-40 0 -80 -50" fill="none" stroke="#9893a5" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <rect x="210" y="70" width="200" height="28" rx="5" fill="#fdeee4" stroke="#ea9d34"/>
+        <text x="310" y="88" fill="#b4637a" text-anchor="middle" font-weight="700">../hotfix · clean room</text>
+        <text x="150" y="74" fill="#56949f">wtfix →</text>
+        <text x="430" y="74" fill="#907aa9">→ push + wtback</text>
+        <text x="470" y="22" fill="#ea9d34" text-anchor="middle" font-weight="700">fix lands</text>
+      </svg>
+    </div>
+    <div class="exercise"><b>&gt; exercise</b> &nbsp;Facilitator runs <code>wtfix demo</code> live. Write the lifecycle from memory: <span class="blank" style="min-width:4em"></span> → fix → <span class="blank" style="min-width:4em"></span> → <span class="blank" style="min-width:4em"></span></div>
+    <div class="sheetfoot"><span>④ THE WORKTREE CLEAN-ROOM</span><span>tick what you do · climb one rung</span><span>sheet 4 / 5</span></div>
+  </section>
+
+  <!-- ===== ⑤ SHIP / SHOW / ASK ===== -->
+  <section class="sheet">
+    <div class="band"><span class="num">05</span><div><h2>Ship / Show / Ask</h2><div class="from">quality without a review queue</div></div><div class="meta">sheet 5 / 5</div></div>
+    <p class="lead">Keep quality high with real-time visibility, not an async queue: ship small, show the commit, and ask (pair) on the hard stuff.</p>
+    <div class="climb">tick the rungs you already stand on · climb upward</div>
+    <div class="ladder">
+      <div class="rung"><span class="tb"></span><span><span class="rn">R1</span><b>Ship</b> — low-risk + dark work goes straight to <code>trunk</code>.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R2</span><b>Show</b> — drop the commit link in the channel for visibility.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R3</span><b>Ask</b> — pair / mob at the keyboard for architectural pivots.</span></div>
+      <div class="rung"><span class="tb"></span><span><span class="rn">R4</span>PRs retired as the default; quality from visibility + CI gates.</span></div>
+    </div>
+    <div class="nextrung"><b>▶ our next rung this sprint:</b> R<span class="fill"></span> &nbsp; owner <span class="fill" style="min-width:7em"></span></div>
+    <dl class="decoder"><div class="dh">// decoder</div>
+      <dt>ship / show / ask</dt><dd>three ways to integrate by risk — direct / posted / paired.</dd>
+      <dt>pair · mob</dt><dd>two (or more) people at one keyboard, reviewing as they write.</dd>
+      <dt>CI gate</dt><dd>automated build + tests that must pass before code is accepted.</dd>
+    </dl>
+    <div class="figure"><div class="figcap">Fig.5 — three lanes, by risk, feeding one trunk</div>
+      <svg viewBox="0 0 600 110" width="100%" height="110" font-family="ui-monospace,Menlo,monospace" font-size="11">
+        <text x="20" y="22" fill="#286983" font-weight="700">SHIP</text><line x1="80" y1="18" x2="430" y2="55" stroke="#286983" stroke-width="2"/>
+        <text x="20" y="56" fill="#ea9d34" font-weight="700">SHOW</text><line x1="90" y1="52" x2="430" y2="55" stroke="#ea9d34" stroke-width="2"/>
+        <text x="20" y="90" fill="#b4637a" font-weight="700">ASK</text><line x1="80" y1="86" x2="430" y2="55" stroke="#b4637a" stroke-width="2"/>
+        <circle cx="430" cy="55" r="6" fill="#575279"/>
+        <line x1="430" y1="55" x2="582" y2="55" stroke="#575279" stroke-width="2.5"/>
+        <polygon points="582,55 572,50 572,60" fill="#575279"/>
+        <text x="505" y="46" fill="#575279" text-anchor="middle" font-weight="700">one trunk</text>
+        <text x="505" y="72" fill="#9893a5" text-anchor="middle">→ prod</text>
+      </svg>
+    </div>
+    <div class="exercise"><b>&gt; exercise</b> &nbsp;Sort into Ship / Show / Ask: (a) a typo fix <span class="blank"></span> &nbsp;(b) a new dark endpoint <span class="blank"></span> &nbsp;(c) an auth rewrite <span class="blank"></span></div>
+    <div class="sheetfoot"><span>⑤ SHIP / SHOW / ASK</span><span>tick what you do · climb one rung</span><span>sheet 5 / 5</span></div>
+  </section>
+
+  <!-- ===== PLEDGE ===== -->
+  <section class="sheet">
+    <div class="band"><div><div class="kick" style="color:var(--love)">Sprint Kit · the commitment</div><h2>Our sprint pledge</h2><div class="from">one or two rungs · one sprint</div></div><div class="meta">pledge</div></div>
+    <p class="pledge-intro">We don't climb the whole ladder at once. <b>This sprint</b>, we commit to one or two next rungs — and we'll revisit them at the end.</p>
+
+    <div class="pblock">
+      <div class="pl">pledge 1</div>
+      <div class="pline"><span class="lab">ladder + rung</span><span class="ln"></span></div>
+      <div class="pline"><span class="lab">what we'll actually do</span><span class="ln"></span></div>
+      <div class="pline"><span class="lab">owner</span><span class="ln"></span><span class="lab">done looks like</span><span class="ln"></span></div>
+    </div>
+    <div class="pblock">
+      <div class="pl">pledge 2 &nbsp;<span style="color:var(--muted)">(optional — don't over-commit)</span></div>
+      <div class="pline"><span class="lab">ladder + rung</span><span class="ln"></span></div>
+      <div class="pline"><span class="lab">what we'll actually do</span><span class="ln"></span></div>
+      <div class="pline"><span class="lab">owner</span><span class="ln"></span><span class="lab">done looks like</span><span class="ln"></span></div>
+    </div>
+
+    <div class="sign">
+      <div><div class="ln"></div>team / date</div>
+      <div><div class="ln"></div>revisit on (end of sprint)</div>
+    </div>
+    <div class="sheetfoot"><span>SPRINT KIT · THE PLEDGE</span><span>climb one rung · revisit at sprint end</span><span>pledge</span></div>
+  </section>
+
+</div>
+</body>
+</html>
