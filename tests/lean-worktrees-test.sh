@@ -40,6 +40,10 @@ git config user.name "wt test"
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/../lean-worktrees.sh"
 
+# Stub the wtbranch friction delay so the suite stays fast (the .ps1 suite
+# does the same by overriding Start-Sleep).
+sleep() { :; }
+
 # --- 1. wtfix spawns a detached worktree --------------------------------------
 wtfix hotfix >/dev/null || fail "wtfix returned non-zero"
 [ "$(git rev-parse --abbrev-ref HEAD)" = "HEAD" ] || fail "expected detached HEAD in new worktree"
@@ -86,7 +90,7 @@ pass "wtbranch spawns a branch and logs exception"
 # --- 6. wtpr pushes the branch to remote ---
 git commit -q --allow-empty -m "pr work"
 wtpr >/dev/null 2>&1 || fail "wtpr returned non-zero"
-[ -n "$(git rev-parse @{u} 2>/dev/null)" ] || fail "upstream tracking not set"
+[ -n "$(git rev-parse "@{u}" 2>/dev/null)" ] || fail "upstream tracking not set"
 pass "wtpr pushes branch to remote"
 
 # --- 7. wtdone removes worktree and local branch ---
