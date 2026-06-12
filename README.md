@@ -40,16 +40,23 @@ print). Screen view is a live preview of the printed sheets.
 source /path/to/dev-workflow/lean-worktrees.sh
 ```
 
-Then `wtfix <name>` spawns a clean worktree off the trunk, `wtsync` rebases it onto trunk,
-`wtpush` rebases and then pushes the worktree's HEAD straight to the trunk, `wtswitch`
-moves between worktrees, and `wtback` tears one down. See `lean-blueprint.md` for
-the model — when a worktree is the right tool versus working directly on your main branch.
+Then `wtfix <name>` spawns a clean worktree off the trunk, `wtlist` shows what exists
+(with branch + age), `wtsync` rebases the active worktree onto trunk, `wtpush` rebases and
+then pushes the worktree's HEAD straight to the trunk, `wtswitch` moves between worktrees,
+and `wtback` tears one down — refusing if the worktree still holds uncommitted *or unpushed*
+work. See `lean-blueprint.md` for the model — when a worktree is the right tool versus
+working directly on your main branch.
 
 ## Status
 
 Interim standalone repo, intended to roll into the `docs.davewil.dev` site so the methodology
 is published rather than just stored. The artifact files have been genericised of
 environment-specific detail.
+
+The repo practices what it documents: commits are gated by its own digest-pinned
+[`lefthook.yml`](./lefthook.yml), CI ([`checks.yml`](./.github/workflows/checks.yml)) mirrors
+that gate and adds full external-link checking, and [`renovate.json`](./renovate.json) keeps
+the pinned digests fresh — the guide's §5 and §7, running live. [MIT licensed](./LICENSE).
 
 ## Roadmap
 

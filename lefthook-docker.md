@@ -7,7 +7,7 @@
 > Primary tool: [Lefthook](https://github.com/evilmartians/lefthook).
 > Pre-commit covered as an alternative in section 9.
 
-Last reviewed: 2026-05-23.
+Last reviewed: 2026-06-12.
 
 ---
 
@@ -129,7 +129,8 @@ pre-commit:
     shellcheck:
       glob: "*.{sh,bash}"
       run: |
-        docker run --rm -v "$PWD":/mnt -w /mnt \
+        docker run --rm --user $(id -u):$(id -g) \
+          -v "$PWD":/mnt -w /mnt \
           docker.io/koalaman/shellcheck@sha256:REPLACE_WITH_DIGEST \
           {staged_files}
 
@@ -219,12 +220,12 @@ jobs:
   lefthook:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0                    # lefthook needs git history for some hooks
 
       - name: Install Lefthook
-        run: npm install -g lefthook@1.13.0  # pin version; bump via Renovate
+        run: npm install -g lefthook@2.1.9  # pin version; bump via Renovate
 
       - name: Run pre-commit hooks
         run: lefthook run pre-commit --all-files
