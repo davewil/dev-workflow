@@ -21,7 +21,7 @@
     "WorktreeRemove": [
       {
         "type": "command",
-        "command": "git worktree remove --force \"$1\"",
+        "command": "git worktree remove \"$1\"",
         "timeout": 60
       }
     ]
