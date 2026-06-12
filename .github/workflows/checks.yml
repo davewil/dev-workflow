@@ -48,37 +48,30 @@ jobs:
           $findings | Format-Table -AutoSize
           if ($findings | Where-Object Severity -eq 'Error') { exit 1 }
 
-      # Same regression test the bash version gets: wtback must refuse to
-      # remove a worktree holding committed-but-unpushed work (it would be
-      # orphaned — detached HEAD, no branch ref), and must succeed after push.
-      - name: Smoke test wtback unpushed guard
-        shell: pwsh
-        run: |
-          git config --global user.email ci@example.com
-          git config --global user.name CI
-          git config --global init.defaultBranch main
-          New-Item -ItemType Directory /tmp/wt | Out-Null; Set-Location /tmp/wt
-          git init -q origin-repo; Set-Location origin-repo
-          git commit -q --allow-empty -m init
-          # the test origin is non-bare; let wtpush push to its checked-out branch
-          git config receive.denyCurrentBranch ignore
-          Set-Location ..
-          git clone -q origin-repo feature; Set-Location feature
-          . $env:GITHUB_WORKSPACE/lean-worktrees.ps1
-          wtfix hotfix
-          git commit -q --allow-empty -m "unpushed work"
-          Set-Location ../feature
-          wtback feature hotfix
-          if (-not (Test-Path ../hotfix)) {
-            Write-Error "FAIL: worktree removed despite unpushed work"; exit 1
-          }
-          "PASS: guard refused removal of unpushed work"
-          Set-Location ../hotfix; wtpush; Set-Location ../feature
-          wtback feature hotfix
-          if (Test-Path ../hotfix) {
-            Write-Error "FAIL: worktree not removed after push"; exit 1
-          }
-          "PASS: clean removal after push"
+      # The same four scenarios the canonical .sh gets (worktrees job below),
+      # so the two ports stay behaviourally in lockstep.
+      - name: Regression tests
+        run: pwsh tests/lean-worktrees-test.ps1
+
+  worktrees:
+    name: Worktree helpers (${{ matrix.shell }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [bash, zsh]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install zsh
+        if: matrix.shell == 'zsh'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
+
+      # The script claims bash AND zsh support, and zsh-only bugs are real
+      # (`local` re-declaration printed name=value noise under zsh while bash
+      # stayed silent) — so both shells run the same suite.
+      - name: Regression tests (${{ matrix.shell }})
+        run: ${{ matrix.shell }} tests/lean-worktrees-test.sh
 
   external-links:
     name: External link check (network)

@@ -14,6 +14,7 @@ ship in small batches safely — kept separate from any one project or personal 
 | [`lean-worktrees.sh`](./lean-worktrees.sh) | Worktree shell helpers for Bash/Zsh — `wtfix` / `wtsync` / `wtswitch` / `wtback`. The canonical copy. |
 | [`lean-worktrees.ps1`](./lean-worktrees.ps1) | PowerShell port of the same helpers. |
 | [`lefthook-docker.md`](./lefthook-docker.md) | Containerised git-hooks reference (Lefthook + Docker, images pinned by digest; cross-platform macOS + Linux). |
+| [`tests/lean-worktrees-test.sh`](./tests/lean-worktrees-test.sh) · [`.ps1`](./tests/lean-worktrees-test.ps1) | Regression suite for the worktree helpers — same four scenarios in both ports, run in CI under bash, zsh, and pwsh. |
 
 ### Worksheets — print-first session collateral
 
