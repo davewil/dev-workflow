@@ -25,6 +25,18 @@
 # ==============================================================================
 
 : "${LEAN_WT_TRUNK:=main}"
+: "${LEAN_WT_REMOTE:=origin}"
+
+# Helper to get the absolute path of the directory containing the worktrees
+_wt_base_dir() {
+    local toplevel
+    toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -z "$toplevel" ]; then
+        echo "❌ Error: Not inside a git repository." >&2
+        return 1
+    fi
+    dirname "$toplevel"
+}
 
 wtfix() {
     local name=$1
@@ -32,12 +44,14 @@ wtfix() {
         echo "❌ Error: Please provide a hotfix name (e.g., wtfix bug-123)"
         return 1
     fi
+    local base_dir
+    base_dir=$(_wt_base_dir) || return 1
     echo "🔄 Fetching latest ${LEAN_WT_TRUNK}..."
-    git fetch origin "$LEAN_WT_TRUNK" --quiet || return 1
-    echo "📁 Spawning clean workspace in ../$name..."
-    git worktree add "../$name" "origin/${LEAN_WT_TRUNK}" || return 1
+    git fetch "$LEAN_WT_REMOTE" "$LEAN_WT_TRUNK" --quiet || return 1
+    echo "📁 Spawning clean workspace in $base_dir/$name..."
+    git worktree add "$base_dir/$name" "$LEAN_WT_REMOTE/${LEAN_WT_TRUNK}" || return 1
     echo "🚀 Swapping to new workspace..."
-    cd "../$name" || return 1
+    cd "$base_dir/$name" || return 1
 }
 
 wtlist() {
@@ -62,17 +76,21 @@ wtlist() {
 
 wtsync() {
     echo "🔄 Syncing active workspace with the main trunk..."
-    git fetch origin "$LEAN_WT_TRUNK" --quiet && git rebase "origin/${LEAN_WT_TRUNK}" \
-        && echo "✅ Workspace aligned with origin/${LEAN_WT_TRUNK}."
+    git fetch "$LEAN_WT_REMOTE" "$LEAN_WT_TRUNK" --quiet || return 1
+    if ! git rebase "$LEAN_WT_REMOTE/${LEAN_WT_TRUNK}"; then
+        echo "❌ Rebase hit conflicts — resolve them, then re-run."
+        return 1
+    fi
+    echo "✅ Workspace aligned with $LEAN_WT_REMOTE/${LEAN_WT_TRUNK}."
 }
 
 wtpush() {
     # Rebase onto the trunk first (the manual sync at the push boundary), then
     # push the worktree's detached HEAD straight to the trunk — no branch, no PR.
     wtsync || return 1
-    echo "⬆️  Pushing HEAD to origin/${LEAN_WT_TRUNK}..."
-    git push origin "HEAD:${LEAN_WT_TRUNK}" \
-        && echo "✅ Landed on origin/${LEAN_WT_TRUNK}."
+    echo "⬆️  Pushing HEAD to $LEAN_WT_REMOTE/${LEAN_WT_TRUNK}..."
+    git push "$LEAN_WT_REMOTE" "HEAD:${LEAN_WT_TRUNK}" \
+        && echo "✅ Landed on $LEAN_WT_REMOTE/${LEAN_WT_TRUNK}."
 }
 
 wtswitch() {
@@ -85,7 +103,13 @@ wtswitch() {
         echo "❌ Error: Usage: wtswitch <worktree-dir-name>"
         return 1
     fi
-    cd "../$target" || return 1
+    local base_dir
+    base_dir=$(_wt_base_dir) || return 1
+    if [ ! -d "$base_dir/$target" ]; then
+        echo "❌ Error: $base_dir/$target does not exist"
+        return 1
+    fi
+    cd "$base_dir/$target" || return 1
     wtsync
 }
 
@@ -96,25 +120,34 @@ wtback() {
         echo "❌ Error: Usage: wtback <feature-dir-name> <hotfix-dir-name>"
         return 1
     fi
+    local base_dir
+    base_dir=$(_wt_base_dir) || return 1
+    if [ ! -d "$base_dir/$target_dir" ]; then
+        echo "❌ Error: $base_dir/$target_dir does not exist"
+        return 1
+    fi
     echo "↩️ Returning to main feature workspace..."
-    cd "../$target_dir" || return 1
+    cd "$base_dir/$target_dir" || return 1
     # git worktree remove only refuses on *uncommitted* changes. Committed-but-
     # unpushed work on a detached HEAD would be silently orphaned — the worktree's
     # HEAD ref and reflog die with it — so guard against that here, explicitly.
     local unpushed
-    unpushed=$(git -C "../$fix_dir" rev-list --count "origin/${LEAN_WT_TRUNK}..HEAD" 2>/dev/null)
+    if ! unpushed=$(git -C "$base_dir/$fix_dir" rev-list --count "$LEAN_WT_REMOTE/${LEAN_WT_TRUNK}..HEAD" 2>/dev/null); then
+        echo "❌ Error: Could not verify if $fix_dir has unpushed commits."
+        return 1
+    fi
     if [ -n "$unpushed" ] && [ "$unpushed" -gt 0 ]; then
-        echo "❌ ../$fix_dir has $unpushed unpushed commit(s) — removing it would orphan them."
+        echo "❌ $base_dir/$fix_dir has $unpushed unpushed commit(s) — removing it would orphan them."
         echo "   Go back and land them (wtpush), or discard them with:"
-        echo "   git worktree remove --force ../$fix_dir"
+        echo "   git worktree remove --force $base_dir/$fix_dir"
         return 1
     fi
     echo "🔥 Vaporising temporary workspace..."
-    if ! git worktree remove "../$fix_dir"; then
+    if ! git worktree remove "$base_dir/$fix_dir"; then
         # git refuses on uncommitted changes — that's the safety net working.
-        echo "❌ Couldn't remove ../$fix_dir — it still has uncommitted work."
+        echo "❌ Couldn't remove $base_dir/$fix_dir — it still has uncommitted work."
         echo "   Go back and finish it (commit + wtpush), or discard it with:"
-        echo "   git worktree remove --force ../$fix_dir"
+        echo "   git worktree remove --force $base_dir/$fix_dir"
         return 1
     fi
     wtsync || return 1

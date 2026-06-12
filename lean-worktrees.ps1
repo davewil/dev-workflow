@@ -23,6 +23,16 @@
 # ==============================================================================
 
 if (-not $env:LEAN_WT_TRUNK) { $env:LEAN_WT_TRUNK = "main" }
+if (-not $env:LEAN_WT_REMOTE) { $env:LEAN_WT_REMOTE = "origin" }
+
+function Get-WtBaseDir {
+    $toplevel = git rev-parse --show-toplevel 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($toplevel)) {
+        Write-Host "❌ Error: Not inside a git repository." -ForegroundColor Red
+        return $null
+    }
+    return (Split-Path $toplevel -Parent)
+}
 
 function wtfix {
     param([string]$name)
@@ -30,14 +40,16 @@ function wtfix {
         Write-Host "❌ Error: Please provide a hotfix name (e.g., wtfix bug-123)" -ForegroundColor Red
         return
     }
+    $baseDir = Get-WtBaseDir
+    if (-not $baseDir) { return }
     Write-Host "🔄 Fetching latest $($env:LEAN_WT_TRUNK)..." -ForegroundColor Cyan
-    git fetch origin $env:LEAN_WT_TRUNK --quiet
+    git fetch $env:LEAN_WT_REMOTE $env:LEAN_WT_TRUNK --quiet
     if ($LASTEXITCODE -ne 0) { return }
-    Write-Host "📁 Spawning clean workspace in ../$name..." -ForegroundColor Cyan
-    git worktree add "../$name" "origin/$($env:LEAN_WT_TRUNK)"
+    Write-Host "📁 Spawning clean workspace in $baseDir/$name..." -ForegroundColor Cyan
+    git worktree add "$baseDir/$name" "$($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)"
     if ($LASTEXITCODE -ne 0) { return }
     Write-Host "🚀 Swapping to new workspace..." -ForegroundColor Green
-    Set-Location "../$name"
+    Set-Location "$baseDir/$name"
 }
 
 function wtlist {
@@ -61,14 +73,14 @@ function wtlist {
 
 function wtsync {
     Write-Host "🔄 Syncing active workspace with the main trunk..." -ForegroundColor Cyan
-    git fetch origin $env:LEAN_WT_TRUNK --quiet
+    git fetch $env:LEAN_WT_REMOTE $env:LEAN_WT_TRUNK --quiet
     if ($LASTEXITCODE -ne 0) { return }
-    git rebase "origin/$($env:LEAN_WT_TRUNK)"
+    git rebase "$($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ Rebase hit conflicts — resolve them, then re-run." -ForegroundColor Red
         return
     }
-    Write-Host "✅ Workspace aligned with origin/$($env:LEAN_WT_TRUNK)." -ForegroundColor Green
+    Write-Host "✅ Workspace aligned with $($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)." -ForegroundColor Green
 }
 
 function wtpush {
@@ -76,10 +88,10 @@ function wtpush {
     # push the worktree's detached HEAD straight to the trunk — no branch, no PR.
     wtsync
     if ($LASTEXITCODE -ne 0) { return }
-    Write-Host "⬆️  Pushing HEAD to origin/$($env:LEAN_WT_TRUNK)..." -ForegroundColor Cyan
-    git push origin "HEAD:$($env:LEAN_WT_TRUNK)"
+    Write-Host "⬆️  Pushing HEAD to $($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)..." -ForegroundColor Cyan
+    git push $env:LEAN_WT_REMOTE "HEAD:$($env:LEAN_WT_TRUNK)"
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✅ Landed on origin/$($env:LEAN_WT_TRUNK)." -ForegroundColor Green
+        Write-Host "✅ Landed on $($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)." -ForegroundColor Green
     }
 }
 
@@ -93,11 +105,13 @@ function wtswitch {
         Write-Host "❌ Error: Usage: wtswitch <worktree-dir-name>" -ForegroundColor Red
         return
     }
-    if (-not (Test-Path "../$target")) {
-        Write-Host "❌ Error: ../$target does not exist" -ForegroundColor Red
+    $baseDir = Get-WtBaseDir
+    if (-not $baseDir) { return }
+    if (-not (Test-Path "$baseDir/$target")) {
+        Write-Host "❌ Error: $baseDir/$target does not exist" -ForegroundColor Red
         return
     }
-    Set-Location "../$target"
+    Set-Location "$baseDir/$target"
     wtsync
 }
 
@@ -107,29 +121,35 @@ function wtback {
         Write-Host "❌ Error: Usage: wtback <feature-dir-name> <hotfix-dir-name>" -ForegroundColor Red
         return
     }
+    $baseDir = Get-WtBaseDir
+    if (-not $baseDir) { return }
     Write-Host "↩️ Returning to main feature workspace..." -ForegroundColor Cyan
-    if (-not (Test-Path "../$target_dir")) {
-        Write-Host "❌ Error: ../$target_dir does not exist" -ForegroundColor Red
+    if (-not (Test-Path "$baseDir/$target_dir")) {
+        Write-Host "❌ Error: $baseDir/$target_dir does not exist" -ForegroundColor Red
         return
     }
-    Set-Location "../$target_dir"
+    Set-Location "$baseDir/$target_dir"
     # git worktree remove only refuses on *uncommitted* changes. Committed-but-
     # unpushed work on a detached HEAD would be silently orphaned — the worktree's
     # HEAD ref and reflog die with it — so guard against that here, explicitly.
-    $unpushed = git -C "../$fix_dir" rev-list --count "origin/$($env:LEAN_WT_TRUNK)..HEAD" 2>$null
-    if ($LASTEXITCODE -eq 0 -and [int]$unpushed -gt 0) {
-        Write-Host "❌ ../$fix_dir has $unpushed unpushed commit(s) — removing it would orphan them." -ForegroundColor Red
+    $unpushed = git -C "$baseDir/$fix_dir" rev-list --count "$($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)..HEAD" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Error: Could not verify if $fix_dir has unpushed commits." -ForegroundColor Red
+        return
+    }
+    if ([int]$unpushed -gt 0) {
+        Write-Host "❌ $baseDir/$fix_dir has $unpushed unpushed commit(s) — removing it would orphan them." -ForegroundColor Red
         Write-Host "   Go back and land them (wtpush), or discard them with:" -ForegroundColor Red
-        Write-Host "   git worktree remove --force ../$fix_dir" -ForegroundColor Red
+        Write-Host "   git worktree remove --force $baseDir/$fix_dir" -ForegroundColor Red
         return
     }
     Write-Host "🔥 Vaporising temporary workspace..." -ForegroundColor Yellow
-    git worktree remove "../$fix_dir"
+    git worktree remove "$baseDir/$fix_dir"
     if ($LASTEXITCODE -ne 0) {
         # git refuses on uncommitted changes — that's the safety net working.
-        Write-Host "❌ Couldn't remove ../$fix_dir — it still has uncommitted work." -ForegroundColor Red
+        Write-Host "❌ Couldn't remove $baseDir/$fix_dir — it still has uncommitted work." -ForegroundColor Red
         Write-Host "   Go back and finish it (commit + wtpush), or discard it with:" -ForegroundColor Red
-        Write-Host "   git worktree remove --force ../$fix_dir" -ForegroundColor Red
+        Write-Host "   git worktree remove --force $baseDir/$fix_dir" -ForegroundColor Red
         return
     }
     wtsync
