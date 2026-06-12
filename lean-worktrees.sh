@@ -153,3 +153,72 @@ wtback() {
     wtsync || return 1
     echo "✨ Clean room destroyed. Workspace updated. Back to work!"
 }
+
+wtbranch() {
+    local name=$1
+    local reason=$2
+    if [ -z "$name" ] || [ -z "$reason" ]; then
+        echo "❌ Error: Usage: wtbranch <branch-name> <mandatory-reason-for-breaking-tbd>"
+        echo "   Example: wtbranch my-feature \"Need async code review from Bob\""
+        return 1
+    fi
+    local base_dir
+    base_dir=$(_wt_base_dir) || return 1
+    
+    echo "⚠️  WARNING: You are choosing to break the Trunk-Based Development workflow."
+    echo "⚠️  Reason provided: $reason"
+    echo "⚠️  Auditing this exception and pausing for 5 seconds..."
+    
+    # Auditing
+    echo "$(date '+%Y-%m-%d %H:%M:%S') | $(whoami) | Branch: $name | Reason: $reason" >> "$base_dir/.tbd-exceptions.log"
+    
+    # Friction
+    sleep 5
+    
+    echo "🔄 Fetching latest ${LEAN_WT_TRUNK}..."
+    git fetch "$LEAN_WT_REMOTE" "$LEAN_WT_TRUNK" --quiet || return 1
+    echo "📁 Spawning clean workspace with local branch '$name'..."
+    git worktree add -b "$name" "$base_dir/$name" "$LEAN_WT_REMOTE/${LEAN_WT_TRUNK}" || return 1
+    echo "🚀 Swapping to new workspace..."
+    cd "$base_dir/$name" || return 1
+}
+
+wtpr() {
+    local branch
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$branch" = "HEAD" ]; then
+        echo "❌ Error: You are on a detached HEAD. Use wtpush to push straight to trunk."
+        return 1
+    fi
+    echo "⬆️  Pushing branch '$branch' to $LEAN_WT_REMOTE to open a PR..."
+    git push -u "$LEAN_WT_REMOTE" "$branch" && echo "✅ Ready for a PR!"
+}
+
+wtdone() {
+    local target_dir=$1
+    local feature_dir=$2
+    if [ -z "$target_dir" ] || [ -z "$feature_dir" ]; then
+        echo "❌ Error: Usage: wtdone <target-dir-name> <feature-dir-name>"
+        return 1
+    fi
+    local base_dir
+    base_dir=$(_wt_base_dir) || return 1
+    if [ ! -d "$base_dir/$target_dir" ]; then
+        echo "❌ Error: $base_dir/$target_dir does not exist"
+        return 1
+    fi
+    echo "↩️ Returning to target workspace..."
+    cd "$base_dir/$target_dir" || return 1
+    
+    echo "🔥 Vaporising worktree..."
+    if ! git worktree remove "$base_dir/$feature_dir"; then
+        echo "❌ Couldn't remove $base_dir/$feature_dir — it still has uncommitted work."
+        return 1
+    fi
+    
+    echo "🧹 Deleting local branch '$feature_dir'..."
+    git branch -D "$feature_dir" || return 1
+    
+    wtsync || return 1
+    echo "✨ Worktree and local branch destroyed. Back to work!"
+}

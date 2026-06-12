@@ -60,6 +60,32 @@ wtback feature hotfix
 if (Test-Path ../hotfix) { Fail "worktree still present after wtback" }
 Pass "wtback removes cleanly after push"
 
+# --- 5. wtbranch spawns a worktree with a local branch and logs exception ---
+Set-Location ../feature
+# Temporarily override Start-Sleep to avoid the 5 second delay during tests
+function Start-Sleep { }
+wtbranch my-pr "Test PR workflow" | Out-Null
+if ((git rev-parse --abbrev-ref HEAD) -ne "my-pr") { Fail "expected named branch in new worktree" }
+if (-not (Test-Path ../.tbd-exceptions.log)) { Fail "missing exception log" }
+$log = Get-Content ../.tbd-exceptions.log
+if ($log -notmatch "Test PR workflow") { Fail "exception log missing reason" }
+Pass "wtbranch spawns a branch and logs exception"
+
+# --- 6. wtpr pushes the branch to remote ---
+git commit -q --allow-empty -m "pr work"
+wtpr | Out-Null
+$upstream = git rev-parse "@{u}" 2>$null
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($upstream)) { Fail "upstream tracking not set" }
+Pass "wtpr pushes branch to remote"
+
+# --- 7. wtdone removes worktree and local branch ---
+Set-Location ../feature
+wtdone feature my-pr | Out-Null
+if (Test-Path ../my-pr) { Fail "worktree still present after wtdone" }
+$branchExists = git branch --list | Select-String "my-pr"
+if ($branchExists) { Fail "local branch still present after wtdone" }
+Pass "wtdone removes cleanly"
+
 Write-Host "ALL PASS"
 Set-Location /
 Remove-Item -Recurse -Force $work

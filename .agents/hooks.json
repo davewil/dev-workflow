@@ -1,0 +1,39 @@
+{
+  "beads-context": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "bd prime",
+        "timeout": 30
+      }
+    ]
+  },
+  "lean-worktrees-override": {
+    "enabled": true,
+    "WorktreeCreate": [
+      {
+        "type": "command",
+        "command": "source ./lean-worktrees.sh && wtfix \"ag-${1:-workspace}\" >&2 && echo \"$(git rev-parse --show-toplevel)/ag-${1:-workspace}\"",
+        "timeout": 60
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "type": "command",
+        "command": "git worktree remove --force \"$1\"",
+        "timeout": 60
+      }
+    ]
+  },
+  "session-completion-gates": {
+    "enabled": true,
+    "Stop": [
+      {
+        "type": "command",
+        "command": "source ./lean-worktrees.sh && echo 'Running Quality Gates...' && lefthook run pre-commit --all-files && echo 'Landing worktree to trunk...' && wtpush && echo 'Syncing Dolt DB...' && bd dolt push && echo 'Session Complete!'",
+        "timeout": 120
+      }
+    ]
+  }
+}

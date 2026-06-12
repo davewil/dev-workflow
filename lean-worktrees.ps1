@@ -156,3 +156,79 @@ function wtback {
     if ($LASTEXITCODE -ne 0) { return }
     Write-Host "✨ Clean room destroyed. Workspace updated. Back to work!" -ForegroundColor Green
 }
+
+function wtbranch {
+    param([string]$name, [string]$reason)
+    if ([string]::IsNullOrEmpty($name) -or [string]::IsNullOrEmpty($reason)) {
+        Write-Host "❌ Error: Usage: wtbranch <branch-name> <mandatory-reason-for-breaking-tbd>" -ForegroundColor Red
+        Write-Host "   Example: wtbranch my-feature `"Need async code review from Bob`"" -ForegroundColor Red
+        return
+    }
+    $baseDir = Get-WtBaseDir
+    if (-not $baseDir) { return }
+    
+    Write-Host "⚠️  WARNING: You are choosing to break the Trunk-Based Development workflow." -ForegroundColor Yellow
+    Write-Host "⚠️  Reason provided: $reason" -ForegroundColor Yellow
+    Write-Host "⚠️  Auditing this exception and pausing for 5 seconds..." -ForegroundColor Yellow
+    
+    # Auditing
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $user = [Environment]::UserName
+    "$timestamp | $user | Branch: $name | Reason: $reason" | Out-File -Append -FilePath "$baseDir/.tbd-exceptions.log" -Encoding utf8
+    
+    # Friction
+    Start-Sleep -Seconds 5
+    
+    Write-Host "🔄 Fetching latest $($env:LEAN_WT_TRUNK)..." -ForegroundColor Cyan
+    git fetch $env:LEAN_WT_REMOTE $env:LEAN_WT_TRUNK --quiet
+    if ($LASTEXITCODE -ne 0) { return }
+    Write-Host "📁 Spawning clean workspace with local branch '$name'..." -ForegroundColor Cyan
+    git worktree add -b "$name" "$baseDir/$name" "$($env:LEAN_WT_REMOTE)/$($env:LEAN_WT_TRUNK)"
+    if ($LASTEXITCODE -ne 0) { return }
+    Write-Host "🚀 Swapping to new workspace..." -ForegroundColor Green
+    Set-Location "$baseDir/$name"
+}
+
+function wtpr {
+    $branch = git rev-parse --abbrev-ref HEAD 2>$null
+    if ($branch -eq "HEAD") {
+        Write-Host "❌ Error: You are on a detached HEAD. Use wtpush to push straight to trunk." -ForegroundColor Red
+        return
+    }
+    Write-Host "⬆️  Pushing branch '$branch' to $($env:LEAN_WT_REMOTE) to open a PR..." -ForegroundColor Cyan
+    git push -u $env:LEAN_WT_REMOTE $branch
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ Ready for a PR!" -ForegroundColor Green
+    }
+}
+
+function wtdone {
+    param([string]$target_dir, [string]$feature_dir)
+    if ([string]::IsNullOrEmpty($target_dir) -or [string]::IsNullOrEmpty($feature_dir)) {
+        Write-Host "❌ Error: Usage: wtdone <target-dir-name> <feature-dir-name>" -ForegroundColor Red
+        return
+    }
+    $baseDir = Get-WtBaseDir
+    if (-not $baseDir) { return }
+    Write-Host "↩️ Returning to target workspace..." -ForegroundColor Cyan
+    if (-not (Test-Path "$baseDir/$target_dir")) {
+        Write-Host "❌ Error: $baseDir/$target_dir does not exist" -ForegroundColor Red
+        return
+    }
+    Set-Location "$baseDir/$target_dir"
+    
+    Write-Host "🔥 Vaporising worktree..." -ForegroundColor Yellow
+    git worktree remove "$baseDir/$feature_dir"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Couldn't remove $baseDir/$feature_dir — it still has uncommitted work." -ForegroundColor Red
+        return
+    }
+    
+    Write-Host "🧹 Deleting local branch '$feature_dir'..." -ForegroundColor Yellow
+    git branch -D "$feature_dir"
+    if ($LASTEXITCODE -ne 0) { return }
+    
+    wtsync
+    if ($LASTEXITCODE -ne 0) { return }
+    Write-Host "✨ Worktree and local branch destroyed. Back to work!" -ForegroundColor Green
+}

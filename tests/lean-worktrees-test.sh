@@ -75,5 +75,26 @@ wtback feature hotfix >/dev/null 2>&1 || fail "wtback returned non-zero after pu
 [ ! -d ../hotfix ] || fail "worktree still present after wtback"
 pass "wtback removes cleanly after push"
 
+# --- 5. wtbranch spawns a worktree with a local branch and logs exception ---
+cd ../feature || exit 1
+wtbranch my-pr "Test PR workflow" >/dev/null 2>&1 || fail "wtbranch returned non-zero"
+[ "$(git rev-parse --abbrev-ref HEAD)" = "my-pr" ] || fail "expected named branch in new worktree"
+[ -f ../.tbd-exceptions.log ] || fail "missing exception log"
+grep -q "Test PR workflow" ../.tbd-exceptions.log || fail "exception log missing reason"
+pass "wtbranch spawns a branch and logs exception"
+
+# --- 6. wtpr pushes the branch to remote ---
+git commit -q --allow-empty -m "pr work"
+wtpr >/dev/null 2>&1 || fail "wtpr returned non-zero"
+[ -n "$(git rev-parse @{u} 2>/dev/null)" ] || fail "upstream tracking not set"
+pass "wtpr pushes branch to remote"
+
+# --- 7. wtdone removes worktree and local branch ---
+cd ../feature || exit 1
+wtdone feature my-pr >/dev/null 2>&1 || fail "wtdone returned non-zero"
+[ ! -d ../my-pr ] || fail "worktree still present after wtdone"
+if git branch --list | grep -q "my-pr"; then fail "local branch still present after wtdone"; fi
+pass "wtdone removes cleanly"
+
 echo "ALL PASS"
 cd / && rm -rf "$WORK"

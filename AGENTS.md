@@ -47,6 +47,21 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
+## Worktree Workflows (`wt*`)
+
+This repo uses a strict trunk-based, single-piece-flow worktree model. **Avoid traditional git branches and PRs.** Instead, source `lean-worktrees.sh` (or `.ps1`) and use:
+
+- `wtfix <name>`: Spawn a clean worktree on a detached HEAD directly off `main`. Use this to start work!
+- `wtpush`: Rebase and push your detached HEAD straight to trunk. Replaces `git push`.
+- `wtback <target> <feature>`: Destroy the clean room (removes the worktree) and return to the target dir.
+- `wtsync`: Rebase the active worktree onto main.
+
+**Breaking TBD (Escape Hatch):**
+If you MUST use a Pull Request or share an incomplete branch, use the audited fallback commands. These will log your exception publicly to `.tbd-exceptions.log` and force a 5-second penalty:
+- `wtbranch <name> "<mandatory-reason>"`: Create a worktree *with* a named local branch.
+- `wtpr`: Push the branch to origin to open a PR.
+- `wtdone <target> <feature>`: Vaporize both the worktree AND the local branch when finished.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
 ## Beads Issue Tracker
 
