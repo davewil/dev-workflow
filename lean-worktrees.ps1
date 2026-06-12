@@ -32,8 +32,10 @@ function wtfix {
     }
     Write-Host "🔄 Fetching latest $($env:LEAN_WT_TRUNK)..." -ForegroundColor Cyan
     git fetch origin $env:LEAN_WT_TRUNK --quiet
+    if ($LASTEXITCODE -ne 0) { return }
     Write-Host "📁 Spawning clean workspace in ../$name..." -ForegroundColor Cyan
     git worktree add "../$name" "origin/$($env:LEAN_WT_TRUNK)"
+    if ($LASTEXITCODE -ne 0) { return }
     Write-Host "🚀 Swapping to new workspace..." -ForegroundColor Green
     Set-Location "../$name"
 }
@@ -42,8 +44,13 @@ function wtlist {
     git worktree list | ForEach-Object {
         $parts  = $_ -split "\s+"
         $path   = $parts[0]
-        $branch = git -C $path rev-parse --abbrev-ref HEAD
-        $age    = git -C $path log -1 --format="%cr"
+        $branch = git -C $path rev-parse --abbrev-ref HEAD 2>$null
+        # wtfix worktrees are detached, so abbrev-ref yields the literal "HEAD" —
+        # show the short SHA instead, which is at least identifying.
+        if ($branch -eq "HEAD") {
+            $branch = "detached@" + (git -C $path rev-parse --short HEAD 2>$null)
+        }
+        $age    = git -C $path log -1 --format="%cr" 2>$null
         [PSCustomObject]@{
             Branch = $branch
             Age    = $age
@@ -55,6 +62,7 @@ function wtlist {
 function wtsync {
     Write-Host "🔄 Syncing active workspace with the main trunk..." -ForegroundColor Cyan
     git fetch origin $env:LEAN_WT_TRUNK --quiet
+    if ($LASTEXITCODE -ne 0) { return }
     git rebase "origin/$($env:LEAN_WT_TRUNK)"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ Rebase hit conflicts — resolve them, then re-run." -ForegroundColor Red
@@ -85,6 +93,10 @@ function wtswitch {
         Write-Host "❌ Error: Usage: wtswitch <worktree-dir-name>" -ForegroundColor Red
         return
     }
+    if (-not (Test-Path "../$target")) {
+        Write-Host "❌ Error: ../$target does not exist" -ForegroundColor Red
+        return
+    }
     Set-Location "../$target"
     wtsync
 }
@@ -96,12 +108,26 @@ function wtback {
         return
     }
     Write-Host "↩️ Returning to main feature workspace..." -ForegroundColor Cyan
+    if (-not (Test-Path "../$target_dir")) {
+        Write-Host "❌ Error: ../$target_dir does not exist" -ForegroundColor Red
+        return
+    }
     Set-Location "../$target_dir"
+    # git worktree remove only refuses on *uncommitted* changes. Committed-but-
+    # unpushed work on a detached HEAD would be silently orphaned — the worktree's
+    # HEAD ref and reflog die with it — so guard against that here, explicitly.
+    $unpushed = git -C "../$fix_dir" rev-list --count "origin/$($env:LEAN_WT_TRUNK)..HEAD" 2>$null
+    if ($LASTEXITCODE -eq 0 -and [int]$unpushed -gt 0) {
+        Write-Host "❌ ../$fix_dir has $unpushed unpushed commit(s) — removing it would orphan them." -ForegroundColor Red
+        Write-Host "   Go back and land them (wtpush), or discard them with:" -ForegroundColor Red
+        Write-Host "   git worktree remove --force ../$fix_dir" -ForegroundColor Red
+        return
+    }
     Write-Host "🔥 Vaporising temporary workspace..." -ForegroundColor Yellow
     git worktree remove "../$fix_dir"
     if ($LASTEXITCODE -ne 0) {
         # git refuses on uncommitted changes — that's the safety net working.
-        Write-Host "❌ Couldn't remove ../$fix_dir — it still has uncommitted (or unpushed) work." -ForegroundColor Red
+        Write-Host "❌ Couldn't remove ../$fix_dir — it still has uncommitted work." -ForegroundColor Red
         Write-Host "   Go back and finish it (commit + wtpush), or discard it with:" -ForegroundColor Red
         Write-Host "   git worktree remove --force ../$fix_dir" -ForegroundColor Red
         return

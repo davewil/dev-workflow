@@ -43,10 +43,17 @@ wtfix() {
 wtlist() {
     printf "%-25s %-15s %s\n" "BRANCH" "AGE" "PATH"
     printf "%-25s %-15s %s\n" "------" "---" "----"
+    # Declare once, outside the loop: zsh's `local` *prints* name=value when
+    # re-declaring an already-set variable, so per-iteration `local` leaks noise.
+    local line wt_path branch age
     git worktree list | while read -r line; do
-        local wt_path branch age
         wt_path=$(echo "$line" | awk '{print $1}')
         branch=$(git -C "$wt_path" rev-parse --abbrev-ref HEAD 2>/dev/null)
+        # wtfix worktrees are detached, so abbrev-ref yields the literal "HEAD" —
+        # show the short SHA instead, which is at least identifying.
+        if [ "$branch" = "HEAD" ]; then
+            branch="detached@$(git -C "$wt_path" rev-parse --short HEAD 2>/dev/null)"
+        fi
         age=$(git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
         [ -z "$age" ] && age="N/A"
         printf "\033[32m%-25s\033[0m \033[36m%-15s\033[0m %s\n" "${branch:0:24}" "${age:0:14}" "$wt_path"
@@ -91,10 +98,21 @@ wtback() {
     fi
     echo "↩️ Returning to main feature workspace..."
     cd "../$target_dir" || return 1
+    # git worktree remove only refuses on *uncommitted* changes. Committed-but-
+    # unpushed work on a detached HEAD would be silently orphaned — the worktree's
+    # HEAD ref and reflog die with it — so guard against that here, explicitly.
+    local unpushed
+    unpushed=$(git -C "../$fix_dir" rev-list --count "origin/${LEAN_WT_TRUNK}..HEAD" 2>/dev/null)
+    if [ -n "$unpushed" ] && [ "$unpushed" -gt 0 ]; then
+        echo "❌ ../$fix_dir has $unpushed unpushed commit(s) — removing it would orphan them."
+        echo "   Go back and land them (wtpush), or discard them with:"
+        echo "   git worktree remove --force ../$fix_dir"
+        return 1
+    fi
     echo "🔥 Vaporising temporary workspace..."
     if ! git worktree remove "../$fix_dir"; then
         # git refuses on uncommitted changes — that's the safety net working.
-        echo "❌ Couldn't remove ../$fix_dir — it still has uncommitted (or unpushed) work."
+        echo "❌ Couldn't remove ../$fix_dir — it still has uncommitted work."
         echo "   Go back and finish it (commit + wtpush), or discard it with:"
         echo "   git worktree remove --force ../$fix_dir"
         return 1
