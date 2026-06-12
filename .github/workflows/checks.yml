@@ -1,0 +1,99 @@
+# CI mirror of the commit gate, as lefthook-docker.md §5 prescribes: the same
+# `lefthook run` against the same digest-pinned images, so local-green means
+# CI-green. Plus the one check that does NOT belong at the commit boundary:
+# full external link verification (the commit hook runs lychee --offline).
+name: checks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  gate:
+    name: Commit gate (lefthook, all files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Lefthook
+        run: npm install -g lefthook@2.1.9 # pin version; bump via Renovate
+
+      - name: Run pre-commit hooks (CI-equivalent)
+        run: lefthook run pre-commit --all-files
+
+  ps-port:
+    name: PowerShell port (parse, analyze, smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # The commit gate deliberately skips the .ps1 (PSScriptAnalyzer needs a
+      # PowerShell runtime — too heavy for the commit boundary). The runner has
+      # pwsh preinstalled, so the port gets its automated review here instead.
+      - name: Parse check
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "$PWD/lean-worktrees.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          "Parse OK"
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          $findings = Invoke-ScriptAnalyzer -Path ./lean-worktrees.ps1 -Severity Warning, Error
+          $findings | Format-Table -AutoSize
+          if ($findings | Where-Object Severity -eq 'Error') { exit 1 }
+
+      # Same regression test the bash version gets: wtback must refuse to
+      # remove a worktree holding committed-but-unpushed work (it would be
+      # orphaned — detached HEAD, no branch ref), and must succeed after push.
+      - name: Smoke test wtback unpushed guard
+        shell: pwsh
+        run: |
+          git config --global user.email ci@example.com
+          git config --global user.name CI
+          git config --global init.defaultBranch main
+          New-Item -ItemType Directory /tmp/wt | Out-Null; Set-Location /tmp/wt
+          git init -q origin-repo; Set-Location origin-repo
+          git commit -q --allow-empty -m init
+          # the test origin is non-bare; let wtpush push to its checked-out branch
+          git config receive.denyCurrentBranch ignore
+          Set-Location ..
+          git clone -q origin-repo feature; Set-Location feature
+          . $env:GITHUB_WORKSPACE/lean-worktrees.ps1
+          wtfix hotfix
+          git commit -q --allow-empty -m "unpushed work"
+          Set-Location ../feature
+          wtback feature hotfix
+          if (-not (Test-Path ../hotfix)) {
+            Write-Error "FAIL: worktree removed despite unpushed work"; exit 1
+          }
+          "PASS: guard refused removal of unpushed work"
+          Set-Location ../hotfix; wtpush; Set-Location ../feature
+          wtback feature hotfix
+          if (Test-Path ../hotfix) {
+            Write-Error "FAIL: worktree not removed after push"; exit 1
+          }
+          "PASS: clean removal after push"
+
+  external-links:
+    name: External link check (network)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Same digest-pinned lychee image as lefthook.yml, without --offline.
+      # GITHUB_TOKEN raises the rate limit for the github.com links.
+      - name: lychee (online, all markdown)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run --rm --user $(id -u):$(id -g) \
+            -e GITHUB_TOKEN \
+            -v "$PWD":/input -w /input \
+            docker.io/lycheeverse/lychee@sha256:eaff3e0a13603c9a701accfcc84f44158bb77bf36ecfa4622b626056c3463892 \
+            --no-progress '**/*.md'

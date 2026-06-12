@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Docker image digests pinned in lefthook.yml and CI workflows",
+      "fileMatch": ["^lefthook\\.yml$", "^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "matchStrings": [
+        "(?<depName>(?:[a-z0-9.\\-]+(?:\\.[a-z0-9.\\-]+)*/)?[a-z0-9.\\-/]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Bump the Lefthook version pinned in CI",
+      "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "matchStrings": ["npm install -g lefthook@(?<currentValue>[0-9][0-9.]*)"],
+      "depNameTemplate": "lefthook",
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["lefthook.yml", ".github/workflows/**"],
+      "groupName": "pinned hook images",
+      "automerge": false
+    }
+  ]
+}

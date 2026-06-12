@@ -11,8 +11,10 @@
 pre-commit:
   parallel: true
   commands:
-    # Lint the canonical worktree helpers. (The .ps1 port is reviewed by hand —
-    # PSScriptAnalyzer needs a PowerShell runtime, not worth the weight here.)
+    # Lint the canonical worktree helpers. (The .ps1 port is checked in CI
+    # instead — parse + PSScriptAnalyzer + smoke test in checks.yml — because
+    # PSScriptAnalyzer needs a PowerShell runtime, too heavy for the commit
+    # boundary.)
     shellcheck:
       glob: "*.sh"
       run: |
