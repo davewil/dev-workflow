@@ -16,3 +16,8 @@
 
 # Brainstorming visual-companion scratch (local only)
 .superpowers/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
