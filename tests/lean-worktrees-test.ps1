@@ -71,12 +71,34 @@ $log = Get-Content ../.tbd-exceptions.log
 if ($log -notmatch "Test PR workflow") { Fail "exception log missing reason" }
 Pass "wtbranch spawns a branch and logs exception"
 
+# --- 5b. wtdone refuses branch work that exists on no remote -------------------
+# (A fresh wtbranch is born with upstream=origin/<trunk> via autoSetupMerge, so
+# "never pushed" alone isn't the dangerous state — unique commits are.)
+git commit -q --allow-empty -m "branch-only work"
+Set-Location ../feature
+wtdone feature my-pr | Out-Null
+if (-not (Test-Path ../my-pr)) { Fail "wtdone deleted a branch whose commits exist on no remote" }
+Pass "wtdone refuses never-pushed branch work"
+Set-Location ../my-pr
+
 # --- 6. wtpr pushes the branch to remote ---
 git commit -q --allow-empty -m "pr work"
 wtpr | Out-Null
 $upstream = git rev-parse "@{u}" 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($upstream)) { Fail "upstream tracking not set" }
 Pass "wtpr pushes branch to remote"
+
+# --- 6b. wtdone refuses committed-but-unpushed branch work ---------------------
+git commit -q --allow-empty -m "more unpushed work"
+Set-Location ../feature
+wtdone feature my-pr | Out-Null
+if (-not (Test-Path ../my-pr)) { Fail "wtdone deleted a branch with unpushed commits" }
+git rev-parse --verify -q my-pr 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) { Fail "branch gone despite wtdone refusing" }
+Pass "wtdone refuses unpushed branch work"
+Set-Location ../my-pr
+git push -q
+if ($LASTEXITCODE -ne 0) { Fail "push before final wtdone" }
 
 # --- 7. wtdone removes worktree and local branch ---
 Set-Location ../feature

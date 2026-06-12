@@ -216,14 +216,32 @@ function wtdone {
         return
     }
     Set-Location "$baseDir/$target_dir"
-    
+    # The branch flow's version of wtback's guard: git worktree remove passes on
+    # a clean tree and `branch -D` is a force delete, so committed-but-unpushed
+    # branch work would be orphaned (the branch ref and its reflog go with it).
+    # "Safe" means the remote has every commit — checked against the branch's
+    # upstream, which also survives squash-merges (a merged-into-HEAD check
+    # would false-positive there; the remote-has-it check doesn't).
+    $unpushed = git rev-list --count "$($feature_dir)@{upstream}..$($feature_dir)" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ '$feature_dir' has no upstream — its commits exist nowhere but this machine." -ForegroundColor Red
+        Write-Host "   Push it first (wtpr from the worktree), or discard it with:" -ForegroundColor Red
+        Write-Host "   git worktree remove --force $baseDir/$feature_dir && git branch -D $feature_dir" -ForegroundColor Red
+        return
+    }
+    if ([int]$unpushed -gt 0) {
+        Write-Host "❌ '$feature_dir' has $unpushed unpushed commit(s) — deleting it would orphan them." -ForegroundColor Red
+        Write-Host "   Push them first (wtpr from the worktree), or discard with:" -ForegroundColor Red
+        Write-Host "   git worktree remove --force $baseDir/$feature_dir && git branch -D $feature_dir" -ForegroundColor Red
+        return
+    }
     Write-Host "🔥 Vaporising worktree..." -ForegroundColor Yellow
     git worktree remove "$baseDir/$feature_dir"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ Couldn't remove $baseDir/$feature_dir — it still has uncommitted work." -ForegroundColor Red
         return
     }
-    
+
     Write-Host "🧹 Deleting local branch '$feature_dir'..." -ForegroundColor Yellow
     git branch -D "$feature_dir"
     if ($LASTEXITCODE -ne 0) { return }

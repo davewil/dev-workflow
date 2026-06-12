@@ -209,13 +209,31 @@ wtdone() {
     fi
     echo "↩️ Returning to target workspace..."
     cd "$base_dir/$target_dir" || return 1
-    
+    # The branch flow's version of wtback's guard: git worktree remove passes on
+    # a clean tree and `branch -D` is a force delete, so committed-but-unpushed
+    # branch work would be orphaned (the branch ref and its reflog go with it).
+    # "Safe" means the remote has every commit — checked against the branch's
+    # upstream, which also survives squash-merges (a merged-into-HEAD check
+    # would false-positive there; the remote-has-it check doesn't).
+    local unpushed
+    if ! unpushed=$(git rev-list --count "${feature_dir}@{upstream}..${feature_dir}" 2>/dev/null); then
+        echo "❌ '$feature_dir' has no upstream — its commits exist nowhere but this machine."
+        echo "   Push it first (wtpr from the worktree), or discard it with:"
+        echo "   git worktree remove --force $base_dir/$feature_dir && git branch -D $feature_dir"
+        return 1
+    fi
+    if [ "$unpushed" -gt 0 ]; then
+        echo "❌ '$feature_dir' has $unpushed unpushed commit(s) — deleting it would orphan them."
+        echo "   Push them first (wtpr from the worktree), or discard with:"
+        echo "   git worktree remove --force $base_dir/$feature_dir && git branch -D $feature_dir"
+        return 1
+    fi
     echo "🔥 Vaporising worktree..."
     if ! git worktree remove "$base_dir/$feature_dir"; then
         echo "❌ Couldn't remove $base_dir/$feature_dir — it still has uncommitted work."
         return 1
     fi
-    
+
     echo "🧹 Deleting local branch '$feature_dir'..."
     git branch -D "$feature_dir" || return 1
     
